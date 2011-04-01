@@ -1,0 +1,35 @@
+<html>
+	<head>
+		<script type="text/javascript" src="../bin-debug/jwplayer.js"></script>
+		<script type="text/javascript" src="jwplayer.html5.js"></script>
+		<script type="text/javascript">
+			var options = {
+				image:		'http://playertest.longtailvideo.com/bunny.jpg',
+				skin: '',
+				levels: [
+					{file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+				]
+			};
+			 
+			function embedPlayer(id) {
+				$jw(id).setup(options,'../../player.swf').onPlay(function() {
+					alert("Playing!");
+				}).play();
+			}	
+		</script>
+		<title>JWPlayer JS Embedder Testing Page</title>
+	</head>
+	<body>
+		<h1>JWPlayer JS Embedder Testing Page</h1>
+		<div id="something">
+			<div id="div1"></div>
+		</div>
+		<h3>Embed a player on a div</h3>
+		<a href="#" onclick="embedPlayer('div1'); return false;">Click here to embed player</a><br />
+		<h3>Embed a player on a video tag</h3>
+		<div>
+			<video id="a_video" src="http://playertest.longtailvideo.com/bunny.mp4" width="320" height="240" poster="http://playertest.longtailvideo.com/bunny.png"></video>
+		</div>
+		<a href="#" onclick="console.log($jw('a_video').setup({flashplayer:'../../player.swf'}).play().options); return false;">Click here to embed player</a><br />
+	</body>
+</html>
