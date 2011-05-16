@@ -1,79 +1,40 @@
-  _____                                  
-   (, /   )                /)              
-    _/__ / _  __  _/_ _   // ________   _  
-    /     (_(_/ (_(__(_(_(/_(_)(_) / (_/_)_
- ) /                                       
-(_/                                        
+The JW Player is free for non-commerical use.  To buy a license for commercial use, please visit 
+https://www.longtailvideo.com/players/order.
 
+To build the JW Player, you will need the following software:
 
+ * Flex SDK 3.3: http://opensource.adobe.com/wiki/display/flexsdk/Downloads
+ * Ant 1.7.0: http://ant.apache.org/bindownload.cgi
+ * FlexUnit 4: http://opensource.adobe.com/wiki/display/flexunit/FlexUnit (for testing the player)
 
-Thanks for downloading Pantaloons!
+=== Compiling the Player With the Flex SDK and Ant ===
 
-Pantaloons is a Panoramic Video Player written in Flash. It is based off of the popular JWPlayer, which can be found
-here: http://www.longtailvideo.com/players/jw-flv-player/.
+To compile with Flex and Ant, enter the following command:
 
---- Features ---
+ant -buildfile build\build.xml
 
-Although we'd like to support all the features of JWPlayer, Pantaloons is a work in progress. Presently we support the 
-following:
+If the build is successful, player.swf will appear in the "bin-release" folder.
 
-- playback of all normal movies supported by jwplayer (.mp4, etc)
-- playback of panoramic videos (.vwm)
+=== Compiling the Player With Flex / Flash Builder ===
 
-In the beta branch, we support: 
-- RTMP on demand and RTMP live for non-panoramic videos
-- playback on demand and RTMP live for panoramic videos
+Alternately, if you're using Flex Builder or Flash Builder, you may use the following method to build the player:
 
---- Building the Player ---
+1. Create a new Actionscript project (you can give it any name except "Player").
+2. Under "Project Contents", select the checkout tree (the folder where this README file lives).
+3. If using Flex Builder 3, click the "Next" button, then type "src" into the "Main Source Folder" field.
+4. Click the "Finish" button
+5. Right-click on your new project, and select "Properties"
+6. Under the "ActionScript Compiler" tab, click the radio button that reads "Use a specific version", and make sure it reads "10.0.0" (the default in Flex Builder 3 is "9.0.124")
+7. Click the "OK" button.
+8. Alter your main application class to inherit from com.longtailvideo.jwplayer.player.Player (i.e. public class MyPlayer extends com.longtailvideo.jwplayer.player.Player { ... )
+9. Under the "Project" menu, choose "Export Release Build".
+10. The player will be compiled as bin-release/{Your Project Name}.swf.
 
-It's easiest to build the player with flashbuilder. If you don't have flashBuilder, you can try to build the player with Ant, and follow 
-the details on the JWPlayer site: http://www.longtailvideo.com/support/open-video-ads/ova-for-jw-player-5/13164/how-to-build-the-release. However, 
-you may need to modify the build script.
+=== Compiling the Player With Flash CS4/CS5 ===
 
-To build the player in Flash Builder:
-
-1. Open Flash Builder
-2. Select 'New Actionscript Project'
-3. Under 'default location', select the Pantaloons folder
-4. Click Next
-5. Under Main Application File, select 'JWPanoPlayer.as'
-6. Click 'Finish'
-7. You can now use project normally.
-
---- Configuring the Player ---
-
-Most of the configuration can be done by looking at JWPlayer guide: http://www.longtailvideo.com/support/jw-player-setup-wizard.
-For panoramic videos with the .vwm extension, the player should be able to detect the correct projection automatically - however, you
-will need to add a flashvar - provider: 'video' because .vwm is not a recognized video format. For .mp4 or livestream files, you will 
-need to make an xml playlist and specify the projection in the xml.
-
-For example:
-  <rss version="2.0" xmlns:jwplayer="http://developer.longtailvideo.com/">
-  <channel>
-  <title>EyeSee360</title> 
-  <item>
-  <title>Live Stream</title> 
-  <jwplayer:streamer>rtmp://127.0.0.1/live</jwplayer:streamer> 
-  <jwplayer:provider>rtmp</jwplayer:provider> 
-  <jwplayer:file>livestream</jwplayer:file> 
-  <jwplayer:projection>cylindrical</jwplayer:projection> 
-  <jwplayer:tiltMin>-30</jwplayer:tiltMin> 
-  <jwplayer:tiltMax>30</jwplayer:tiltMax> 
-  <jwplayer:panMin>-90</jwplayer:panMin> 
-  <jwplayer:panMax>90</jwplayer:panMax> 
-  </item>
-  </channel>
-  </rss>
-
-The only required tag to force the player into panoramic mode is to specify the projection - the tag is jwplayer:projection. The options are equirectangular, cylindrical, and equiangular.
-
-The next four arguments are optional. PanMin and PanMax specify the range of pan (side to side movement). Tiltmin and Tiltmax specify the range of top to bottom movement.
-
---- Contact ---
-
-For issues, problems or feedback please use the github: https://github.com/sditmore/Pantaloons. Or contact me at sditmore@eyesee360.com.
-
-
---- Licensing ---
-
-Pantaloons is free for non commerical use, licensed under the BY-NC-SA (http://creativecommons.org/licenses/by-nc-sa/3.0/). To license Pantaloons for commerical use, please email mjr@eyesee360.com.
+1. Create a new FLA file in the "src" directory. 
+2. In the Properties menu, under "Publish", enter "com.longtailvideo.jwplayer.player.Player" in the Class field. 
+3. Open the "Preferences" menu, go to the Actionscript panel, then click the "Actionscript 3.0 settings" button.  Enter the path to the Flex SDK in the "Flex SDK Path" field.
+4. Open the Publish Settings dialog and click the "Settings" button next to the "Script" dropdown. 
+5. Click the "Library path" tab, and remove all of the entries listed there.  Then add a new entry: "$(FlexSDK)/frameworks/libs"
+6. Publish the application.
