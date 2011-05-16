@@ -1,6 +1,5 @@
 package com.longtailvideo.jwplayer.model {
 	import com.longtailvideo.jwplayer.controller.RepeatOptions;
-	import com.longtailvideo.jwplayer.player.PlayerVersion;
 	import com.longtailvideo.jwplayer.plugins.PluginConfig;
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.Strings;
@@ -14,48 +13,44 @@ package com.longtailvideo.jwplayer.model {
 	 * @author Pablo Schklowsky
 	 */
 	public dynamic class PlayerConfig extends EventDispatcher {
-		protected var _singleItem:PlaylistItem = new PlaylistItem();
+		protected var _singleItem:PlaylistItem;
 
 		protected var _playlistfile:String	= null;
 
-		protected var _autostart:Boolean 	= false; 
-		protected var _bandwidth:Number		= 1500;
-		protected var _bufferlength:Number 	= 2; 
-		protected var _displaytitle:Boolean = true; 
+		protected var _autostart:Boolean 		= false; 
+		protected var _bufferlength:Number 	= 5; 
+		protected var _displaytitle:Boolean 	= true; 
 		protected var _fullscreen:Boolean 	= false;
 		protected var _item:Number			= 0;
-		protected var _linktarget:String 	= "_blank";
-		protected var _levels:Array			= null;
-		protected var _mute:Boolean 		= false;
-		protected var _repeat:String 		= RepeatOptions.NONE; 
+		protected var _linktarget:String 		= "_blank";
+		protected var _mute:Boolean 			= false;
+		protected var _repeat:String 			= RepeatOptions.NONE; 
 		protected var _shuffle:Boolean 		= false; 
-		protected var _smoothing:Boolean 	= true;
-		
+		protected var _smoothing:Boolean 		= true;
 		//TODO: Move to ENUM class
-		protected var _stretching:String 	= "uniform"; 
-		protected var _volume:Number 		= 90;
+		protected var _stretching:String 		= "uniform"; 
+		protected var _volume:Number 			= 90;
 
 		protected var _backcolor:Color		= null;
 		protected var _frontcolor:Color		= null;
 		protected var _lightcolor:Color		= null;
-		protected var _screencolor:Color	= null;
+		protected var _screencolor:Color		= null;
 
 		//TODO: Move to ENUM class
-		protected var _controlbar:String 	= "bottom";
-		protected var _dock:Boolean 		= true;
-		protected var _height:Number 		= 400;
-		protected var _icons:Boolean 		= true;
+		protected var _controlbar:String 		= "bottom";
+		protected var _dock:Boolean 			= true;
+		protected var _height:Number 			= 400;
+		protected var _icons:Boolean 			= true;
 		protected var _logo:String 			= null;
 		protected var _playlist:String 		= "none";
-		protected var _playlistsize:String 	= "180";
+		protected var _playlistsize:Number 	= 180;
 		protected var _skin:String 			= null;
-		protected var _width:Number 		= 280;
+		protected var _width:Number 			= 280;
 		
 		protected var _plugins:String 		= ""; //plugins initial string
 		protected var _pluginConfig:Object 	= {};
 		
-		protected var _id:String			= "";
-		protected var _playerready:String	= "";
+		protected var _playerready:String		= "";
 		protected var _debug:String			= Logger.NONE;
 		
 		public function PlayerConfig():void {
@@ -66,16 +61,20 @@ package com.longtailvideo.jwplayer.model {
 		}
 		
 		public function setConfig(config:Object):void {
+			var playlistItems:Boolean = false;
+			if (!_singleItem) { _singleItem = new PlaylistItem(); }
 			for (var item:String in config) {
-				if (item.indexOf(".") > 0) {
-					setPluginProperty(item, config[item]);
-					_singleItem[item.toLowerCase()] = config[item];
-				} else if (_singleItem.hasOwnProperty(item)) {
+				item = item;
+				if (_singleItem.hasOwnProperty(item)) {
 					if (item == "file" && Strings.extension(config[item]) == "xml") {
 						setProperty("playlistfile", config[item]);					
 					} else {
 						_singleItem[item.toLowerCase()] = config[item];
+						playlistItems = true;
 					}
+				} else if (item.indexOf(".") > 0) {
+					setPluginProperty(item, config[item]);
+					_singleItem[item.toLowerCase()] = config[item]; 
 				} else if (config[item.toLowerCase()] != null) {
 					setProperty(item, config[item]);
 				}
@@ -154,8 +153,8 @@ package com.longtailvideo.jwplayer.model {
 		/** URL to an external page the display, controlbar and playlist can link to. **/
 		public function get link():String { return playlistItem('link'); }
 
-		/** Unique identifier for media content. **/		
-		public function get mediaid():String { return playlistItem('mediaid'); }		
+		/** Unique identifier. **/		
+		public function get mediaid():String {			return playlistItem('mediaid');		}		
 		
 		/** Position in seconds where playback has to start. Won't work for regular (progressive) videos, but only for streaming (HTTP / RTMP). **/
 		public function get start():String { return playlistItem('start'); }
@@ -257,8 +256,8 @@ package com.longtailvideo.jwplayer.model {
 		}
 
 		/** When below this refers to the height, when right this refers to the width of the playlist. @default 180 **/
-		public function get playlistsize():String { return _playlistsize; }
-		public function set playlistsize(x:String):void {
+		public function get playlistsize():Number { return _playlistsize; }
+		public function set playlistsize(x:Number):void {
 			_playlistsize = x;
 			setPluginProperty('playlist.size', x.toString());
 		}
@@ -281,10 +280,6 @@ package com.longtailvideo.jwplayer.model {
 		/** Automatically start the player on load. @default false **/
 		public function get autostart():Boolean { return _autostart; }
 		public function set autostart(x:Boolean):void { _autostart = x; }
-
-		/** Automatically start the player on load. @default false **/
-		public function get bandwidth():Number { return _bandwidth; }
-		public function set bandwidth(x:Number):void { _bandwidth = x; }
 
 		/** 
 		 * Number of seconds of the file that has to be loaded before starting. Set this to a low value to enable instant-start and to a 
@@ -342,7 +337,11 @@ package com.longtailvideo.jwplayer.model {
 		public function get plugins():String { return _plugins; }
 		public function set plugins(x:String):void { _plugins = x; }
 
-		/** The current debugging mode. **/		
+		/** Javascript player ready callback handlers **/		
+		public function get playerready():String { return _playerready; }
+		public function set playerready(x:String):void { _playerready = x; }
+		
+		/** Javascript player ready callback handlers **/		
 		public function get debug():String {
 			return _debug;
 		}
@@ -369,7 +368,9 @@ package com.longtailvideo.jwplayer.model {
 			}
 		}
 		
-		/** A list of available pluginConfig keys. **/
+		/**
+		 * A list of available pluginConfig keys. 
+		 */
 		public function get pluginIds():Array {
 			var names:Array = [];
 
@@ -383,19 +384,5 @@ package com.longtailvideo.jwplayer.model {
 			
 			return names;
 		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// JAVASCRIPT INTERACTION
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		
-		/** The player's Javascript objectID. Auto-detected, but should be set manually for Linux Javascript support. **/
-		public function get id():String { return _id; }
-		public function set id(x:String):void { PlayerVersion.id = _id = x; }
-		
-		/** Javascript player ready callback handlers **/		
-		public function get playerready():String { return _playerready; }
-		public function set playerready(x:String):void { _playerready = x; }
-		
-		
 	}
 }

@@ -1,20 +1,19 @@
 package com.longtailvideo.jwplayer.view {
 	import com.longtailvideo.jwplayer.events.GlobalEventDispatcher;
-	import com.longtailvideo.jwplayer.events.IGlobalEventDispatcher;
 	import com.longtailvideo.jwplayer.events.MediaEvent;
-	import com.longtailvideo.jwplayer.events.ProjectionEvent;
 	import com.longtailvideo.jwplayer.events.PlayerEvent;
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
 	import com.longtailvideo.jwplayer.events.PlaylistEvent;
+	import com.longtailvideo.jwplayer.events.ProjectionEvent;
 	import com.longtailvideo.jwplayer.events.ViewEvent;
-	import com.longtailvideo.jwplayer.model.Color;
-	import com.longtailvideo.jwplayer.model.Model;
 	import com.longtailvideo.jwplayer.input.UnwarpInput;
+	import com.longtailvideo.jwplayer.model.Model;
 	import com.longtailvideo.jwplayer.player.IPlayer;
 	import com.longtailvideo.jwplayer.player.PlayerState;
 	import com.longtailvideo.jwplayer.player.PlayerV4Emulation;
 	import com.longtailvideo.jwplayer.plugins.IPlugin;
 	import com.longtailvideo.jwplayer.plugins.PluginConfig;
+	import com.longtailvideo.jwplayer.utils.AssetLoader;
 	import com.longtailvideo.jwplayer.utils.Draw;
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.RootReference;
@@ -26,10 +25,9 @@ package com.longtailvideo.jwplayer.view {
 	import com.longtailvideo.jwplayer.view.interfaces.IPlaylistComponent;
 	import com.longtailvideo.jwplayer.view.interfaces.ISkin;
 	
+	import flash.geom.Rectangle;
 	import flash.display.Bitmap;
 	import flash.display.DisplayObject;
-	import flash.display.DisplayObjectContainer;
-	import flash.display.Loader;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
 	import flash.display.Stage;
@@ -38,13 +36,8 @@ package com.longtailvideo.jwplayer.view {
 	import flash.display.StageScaleMode;
 	import flash.events.ErrorEvent;
 	import flash.events.Event;
-	import flash.events.IOErrorEvent;
-	import flash.events.MouseEvent;
-	import flash.geom.Rectangle;
-	import flash.net.URLRequest;
-	import flash.system.LoaderContext;
-	import flash.text.TextField;
-	import flash.text.TextFormat;
+	
+	import flashx.undo.UndoManager;
 
 
 	public class View extends GlobalEventDispatcher {
@@ -53,23 +46,21 @@ package com.longtailvideo.jwplayer.view {
 		protected var _skin:ISkin;
 		protected var _components:IPlayerComponents;
 		protected var _fullscreen:Boolean = false;
-		protected var _preserveAspect:Boolean = false;
-		protected var _normalScreen:Rectangle;
 		protected var stage:Stage;
 
 		protected var _root:MovieClip;
 
-		protected var _maskedLayers:MovieClip;
 		protected var _backgroundLayer:MovieClip;
 		protected var _mediaLayer:MovieClip;
 		protected var _imageLayer:MovieClip;
 		protected var _componentsLayer:MovieClip;
+		protected var _logoLayer:MovieClip;
 		protected var _pluginsLayer:MovieClip;
 		protected var _plugins:Object;
 
 		protected var _displayMasker:MovieClip;
 
-		protected var _image:Loader;
+		protected var _image:AssetLoader;
 		protected var _logo:Logo;
 
 		protected var layoutManager:PlayerLayoutManager;
@@ -81,8 +72,7 @@ package com.longtailvideo.jwplayer.view {
 		protected var ErrorScreen:Class;
 
 		protected var loaderScreen:Sprite;
-		
-		protected var currentLayer:Number = 0;
+		protected var loaderAnim:DisplayObject;
 
 
 		public function View(player:IPlayer, model:Model) {
@@ -95,6 +85,9 @@ package com.longtailvideo.jwplayer.view {
 			loaderScreen = new Sprite();
 			loaderScreen.name = 'loaderScreen';
 
+			loaderAnim = new LoadingScreen() as DisplayObject;
+			loaderScreen.addChild(loaderAnim);
+
 			RootReference.stage.addChildAt(loaderScreen, 0);
 
 			if (RootReference.stage.stageWidth > 0) {
@@ -105,7 +98,6 @@ package com.longtailvideo.jwplayer.view {
 			}
 
 			_root = new MovieClip();
-			_normalScreen = new Rectangle();
 		}
 
 
@@ -114,9 +106,12 @@ package com.longtailvideo.jwplayer.view {
 			RootReference.stage.removeEventListener(Event.ADDED_TO_STAGE, resizeStage);
 
 			loaderScreen.graphics.clear();
-			loaderScreen.graphics.beginFill(0, 0);
+			loaderScreen.graphics.beginFill(0, 1);
 			loaderScreen.graphics.drawRect(0, 0, RootReference.stage.stageWidth, RootReference.stage.stageHeight);
 			loaderScreen.graphics.endFill();
+
+			loaderAnim.x = (RootReference.stage.stageWidth - loaderAnim.width) / 2;
+			loaderAnim.y = (RootReference.stage.stageHeight - loaderAnim.height) / 2;
 		}
 
 
@@ -137,12 +132,13 @@ package com.longtailvideo.jwplayer.view {
 			setupLayers();
 			setupComponents();
 
+			RootReference.stage.addEventListener(Event.FULLSCREEN, resizeHandler);
 			RootReference.stage.addEventListener(Event.RESIZE, resizeHandler);
-
 			_model.addEventListener(MediaEvent.JWPLAYER_MEDIA_LOADED, mediaLoaded);
 			_model.addEventListener(MediaEvent.JWPLAYER_MEDIA_REFRESH, refresh);
 			_model.addEventListener(ProjectionEvent.VIEW_INPUT_HANDLER, viewInputHandler);
 			_model.playlist.addEventListener(PlaylistEvent.JWPLAYER_PLAYLIST_ITEM, itemHandler);
+			//_model.playlist.addEventListener(PlaylistEvent.JWPLAYER_PLAYLIST_LOADED, itemHandler);
 			_model.playlist.addEventListener(PlaylistEvent.JWPLAYER_PLAYLIST_UPDATED, itemHandler);
 			_model.addEventListener(PlayerStateEvent.JWPLAYER_PLAYER_STATE, stateHandler);
 
@@ -152,6 +148,21 @@ package com.longtailvideo.jwplayer.view {
 			redraw();
 		}
 		
+		protected function viewInputHandler(e:ProjectionEvent):void
+		{
+			if (e.data is UnwarpInput)
+			{
+				var unwarpInput:UnwarpInput = e.data as UnwarpInput;
+				
+				if (this._components.display){
+					unwarpInput.addHandlers(this._components.display, RootReference.stage);
+				}
+				
+			}
+			
+		}
+		
+		
 		protected function setupRightClick():void {
 			var menu:RightclickMenu = new RightclickMenu(_player, _root);
 			menu.addGlobalListener(forward);
@@ -160,57 +171,45 @@ package com.longtailvideo.jwplayer.view {
 		public function completeView(isError:Boolean=false, errorMsg:String=""):void {
 			if (!isError) {
 				_root.visible = true;
-				loaderScreen.parent.removeChild(loaderScreen);
+				RootReference.stage.removeChild(loaderScreen);
 			} else {
+				loaderScreen.removeChild(loaderAnim);
 				var errorScreen:DisplayObject = new ErrorScreen() as DisplayObject;
-				var errorMessage:TextField = new TextField();
-				errorMessage.defaultTextFormat = new TextFormat("_sans", 12, 0xffffff);
-				errorMessage.text = errorMsg;
-				errorMessage.width = loaderScreen.width - 60;
-				errorMessage.wordWrap = true;
-				errorMessage.height = errorMessage.textHeight + 10;
-
 				errorScreen.x = (loaderScreen.width - errorScreen.width) / 2;
-				errorScreen.y = (loaderScreen.height - errorScreen.height - errorMessage.height - 10) / 2;
-				errorMessage.x = (loaderScreen.width - errorMessage.width) / 2;
-				errorMessage.y = errorScreen.y + errorScreen.height + 10;
+				errorScreen.y = (loaderScreen.height - errorScreen.height) / 2;
 				loaderScreen.addChild(errorScreen);
-				loaderScreen.addChild(errorMessage);
 			}
 		}
 
 
 		protected function setupLayers():void {
-			_maskedLayers = setupLayer("masked", currentLayer++);
-			
-			_backgroundLayer = setupLayer("background", 0, _maskedLayers);
+			_backgroundLayer = setupLayer("background", 0);
 			setupBackground();
 
-			_mediaLayer = setupLayer("media", 1, _maskedLayers);
+			_mediaLayer = setupLayer("media", 1);
 			_mediaLayer.visible = false;
 
-			_imageLayer = setupLayer("image", 1, _maskedLayers);
-			_image = new Loader();
-			_image.contentLoaderInfo.addEventListener(Event.COMPLETE, imageComplete);
-			_image.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, imageError);
+			_imageLayer = setupLayer("image", 2);
+			_image = new AssetLoader();
 
-			setupLogo();
+			_componentsLayer = setupLayer("components", 3);
 
-			_componentsLayer = setupLayer("components", currentLayer++);
-
-			_pluginsLayer = setupLayer("plugins", currentLayer++);
+			_pluginsLayer = setupLayer("plugins", 4);
 			_plugins = {};
 			
+			setupLogo();
 		}
-			
+		
 		protected function setupLogo():void {
+			_logoLayer = setupLayer("logo", 5);
 			_logo = new Logo(_player);
+			_logoLayer.addChild(_logo);
 		}
 
 
-		protected function setupLayer(name:String, index:Number, parent:DisplayObjectContainer=null):MovieClip {
+		protected function setupLayer(name:String, index:Number):MovieClip {
 			var layer:MovieClip = new MovieClip();
-			parent ? parent.addChildAt(layer,index) : _root.addChildAt(layer, index);
+			_root.addChildAt(layer, index);
 			layer.name = name;
 			layer.x = 0;
 			layer.y = 0;
@@ -222,15 +221,7 @@ package com.longtailvideo.jwplayer.view {
 			var background:MovieClip = new MovieClip();
 			background.name = "background";
 			_backgroundLayer.addChild(background);
-			
-			var screenColor:Color;
-			if (_model.config.screencolor) {
-				screenColor = _model.config.screencolor;
-			} else if (_model.config.pluginConfig('display').hasOwnProperty('backgroundcolor')) {
-				screenColor = new Color(String(_model.config.pluginConfig('display')['backgroundcolor']));
-			}
-			
-			background.graphics.beginFill(screenColor ? screenColor.color : 0x000000, screenColor ? 1 : 0);
+			background.graphics.beginFill(_player.config.screencolor ? _player.config.screencolor.color : 0x000000, 1);
 			background.graphics.drawRect(0, 0, 1, 1);
 			background.graphics.endFill();
 		}
@@ -242,46 +233,48 @@ package com.longtailvideo.jwplayer.view {
 			_displayMasker.graphics.drawRect(0, 0, _player.config.width, _player.config.height);
 			_displayMasker.graphics.endFill();
 
-			_maskedLayers.mask = _displayMasker;
+			_backgroundLayer.mask = _displayMasker;
+			_imageLayer.mask = _displayMasker;
+			_mediaLayer.mask = _displayMasker;
 		}
 
 
 		protected function setupComponents():void {
-			var n:Number = 0;
-			
 			_components = new PlayerComponents(_player);
 
-			setupComponent(_components.display, n++);
-			setupComponent(_components.playlist, n++);
-			setupComponent(_logo, n++);
-			setupComponent(_components.controlbar, n++);
-			setupComponent(_components.dock, n++);
+			setupComponent(_components.display, 0);
+			setupComponent(_components.playlist, 1);
+			setupComponent(_components.controlbar, 2);
+			setupComponent(_components.dock, 3);
 		}
 
 
-		protected function setupComponent(component:*, index:Number):void {
-			if (component is IGlobalEventDispatcher) { (component as IGlobalEventDispatcher).addGlobalListener(forward); }
-			if (component is DisplayObject) { _componentsLayer.addChildAt(component as DisplayObject, index); }
+		protected function setupComponent(component:IPlayerComponent, index:Number):void {
+			component.addGlobalListener(forward);
+			_componentsLayer.addChildAt(component as DisplayObject, index);
 		}
 
 
 		protected function resizeHandler(event:Event):void {
-			_fullscreen = (RootReference.stage.displayState == StageDisplayState.FULL_SCREEN);
-			if (_model.fullscreen != _fullscreen) {
-				dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_FULLSCREEN, _fullscreen));
-			}
-			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_RESIZE, {width: RootReference.stage.stageWidth, height: RootReference.stage.stageHeight}));
-
 			redraw();
+
+			var currentFSMode:Boolean = (RootReference.stage.displayState == StageDisplayState.FULL_SCREEN);
+			if (_model.fullscreen != currentFSMode) {
+				dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_FULLSCREEN, currentFSMode));
+			}
 		}
 
 
 		public function fullscreen(mode:Boolean=true):void {
-			try {
-				RootReference.stage.displayState = mode ? StageDisplayState.FULL_SCREEN : StageDisplayState.NORMAL;
-			} catch (e:Error) {
-				Logger.log("Could not enter fullscreen mode: " + e.message);
-			}
+			/*
+			Uncomment these lines to enable hardware scaling in fullscreen mode
+			
+			if (RootReference.stage.displayState == StageDisplayState.NORMAL)
+			{
+				RootReference.stage.fullScreenSourceRect = new Rectangle(0, 0, RootReference.stage.width, RootReference.stage.height);
+			}*/
+			
+			RootReference.stage.displayState = mode ? StageDisplayState.FULL_SCREEN : StageDisplayState.NORMAL;
 		}
 
 
@@ -290,33 +283,25 @@ package com.longtailvideo.jwplayer.view {
 			layoutManager.resize(RootReference.stage.stageWidth, RootReference.stage.stageHeight);
 
 			_components.resize(_player.config.width, _player.config.height);
-			if (!_fullscreen) {
-				_normalScreen.width = _player.config.width;
-				_normalScreen.height = _player.config.height;
-			} 
 
 			resizeBackground();
 			resizeMasker();
 
-			_imageLayer.x = _mediaLayer.x = _components.display.x;
-			_imageLayer.y = _mediaLayer.y = _components.display.y;
-
-			if (_preserveAspect) {
-				if(!_fullscreen && _player.config.stretching != Stretcher.EXACTFIT) {
-					_preserveAspect = false;
-				}
-			} else {
-				if (_fullscreen && _player.config.stretching == Stretcher.EXACTFIT) {
-					_preserveAspect = true;
-				}
+			if (_imageLayer.numChildren) {
+				_imageLayer.x = _components.display.x;
+				_imageLayer.y = _components.display.y;
+				Stretcher.stretch(_image.loadedObject, _player.config.width, _player.config.height, _player.config.stretching);
 			}
 
-			resizeImage(_player.config.width, _player.config.height);
-			resizeMedia(_player.config.width, _player.config.height);
-			
-			if (_logo) {
-				_logo.x = _components.display.x;
-				_logo.y = _components.display.y;
+			if (_mediaLayer.numChildren && _model.media.display) {
+				_mediaLayer.x = _components.display.x;
+				_mediaLayer.y = _components.display.y;
+				_model.media.resize(_player.config.width, _player.config.height);
+			}
+
+			if (_logoLayer.numChildren) {
+				_logoLayer.x = _components.display.x;
+				_logoLayer.y = _components.display.y;
 				_logo.resize(_player.config.width, _player.config.height);
 			}
 
@@ -343,46 +328,6 @@ package com.longtailvideo.jwplayer.view {
 			PlayerV4Emulation.getInstance(_player).resize(_player.config.width, _player.config.height);
 		}
 
-		protected function resizeMedia(width:Number, height:Number):void {
-			if (_mediaLayer.numChildren > 0 && _model.media.display) {
-				if (_preserveAspect && _model.media.stretchMedia) {
-					if (_fullscreen && _player.config.stretching == Stretcher.EXACTFIT) {
-						_model.media.resize(_normalScreen.width, _normalScreen.height);
-						Stretcher.stretch(_mediaLayer, width, height, Stretcher.UNIFORM);
-					} else {
-						_model.media.resize(width, height);
-						_mediaLayer.scaleX = _mediaLayer.scaleY = 1;
-						_mediaLayer.x = _mediaLayer.y = 0;
-					}
-				} else {
-					_model.media.resize(width, height);
-					_mediaLayer.x = _mediaLayer.y = 0;
-				}
-				_mediaLayer.x += _components.display.x;
-				_mediaLayer.y += _components.display.y;
-			}
-		}
-
-		protected function resizeImage(width:Number, height:Number):void {
-			if (_imageLayer.numChildren > 0) {
-				if (_preserveAspect) {
-					if (_fullscreen && _player.config.stretching == Stretcher.EXACTFIT) {
-						Stretcher.stretch(_image, _normalScreen.width, _normalScreen.height, _player.config.stretching);
-						Stretcher.stretch(_imageLayer, width, height, Stretcher.UNIFORM);
-					} else {
-						Stretcher.stretch(_image, width, height, _player.config.stretching);
-						Stretcher.stretch(_imageLayer, width, height, Stretcher.NONE);
-						_imageLayer.x = _imageLayer.y = 0;
-					}
-				} else {
-					Stretcher.stretch(_image, width, height, _player.config.stretching);
-					_imageLayer.x = _imageLayer.y = 0;
-				}
-				_imageLayer.x += _components.display.x;
-				_imageLayer.y += _components.display.y;
-			}
-			
-		}
 
 		protected function resizeBackground():void {
 			var bg:DisplayObject = _backgroundLayer.getChildByName("background");
@@ -408,7 +353,7 @@ package com.longtailvideo.jwplayer.view {
 			return _components;
 		}
 
-		/** This feature, while not yet implemented, will allow the API to replace the built-in components with any class that implements the control interfaces. **/
+
 		public function overrideComponent(newComponent:IPlayerComponent):void {
 			if (newComponent is IControlbarComponent) {
 				// Replace controlbar
@@ -430,9 +375,7 @@ package com.longtailvideo.jwplayer.view {
 				if (!_plugins[id] && plugDO != null) {
 					_plugins[id] = plugDO;
 					_pluginsLayer.addChild(plugDO);
-				}
-				if (_player.config.pluginIds.indexOf(id) < 0) {
-					_player.config.plugins += "," + id;
+						//_pluginsLayer[id] = plugDO;
 				}
 			} catch (e:Error) {
 				dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, e.message));
@@ -472,56 +415,16 @@ package com.longtailvideo.jwplayer.view {
 
 
 		protected function mediaLoaded(evt:MediaEvent):void {
+			/* clear out everything first */
+
+			_mediaLayer.x = _components.display.x;
+			_mediaLayer.y = _components.display.y;
 			if (_model.media.display) {
+				_model.media.resize(_player.config.width, _player.config.height);
 				_mediaLayer.addChild(_model.media.display);
-				resizeMedia(_player.config.width, _player.config.height);
 			}
 		}
 
-
-		protected function itemHandler(evt:PlaylistEvent):void {
-			while (_mediaLayer.numChildren) {
-				_mediaLayer.removeChildAt(0);
-			}
-			while (_imageLayer.numChildren) {
-				_imageLayer.removeChildAt(0);
-			}
-			if (_model.playlist.currentItem && _model.playlist.currentItem.image) {
-				loadImage(_model.playlist.currentItem.image);
-			}
-		}
-
-
-		protected function loadImage(url:String):void {
-			_image.load(new URLRequest(url), new LoaderContext(true));
-		}
-
-
-		protected function imageComplete(evt:Event):void {
-			if (_image) {
-				_imageLayer.addChild(_image);
-				resizeImage(_player.config.width, _player.config.height);
-				try {
-					Draw.smooth(_image.content as Bitmap);
-				} catch (e:Error) {
-					Logger.log('Could not smooth preview image: ' + e.message);
-				}
-			}
-		}
-		
-		protected function viewInputHandler(e:ProjectionEvent):void
-		{
-			if (e.data is UnwarpInput)
-			{
-				var unwarpInput:UnwarpInput = e.data as UnwarpInput;
-				
-				if (this._components.display){
-					unwarpInput.addHandlers(this._components.display, RootReference.stage);
-				}
-				
-			}	
-		}
-		
 		protected function refresh(evt:MediaEvent):void {
 			while (_mediaLayer.numChildren) {
 				_mediaLayer.removeChildAt(0);
@@ -533,9 +436,48 @@ package com.longtailvideo.jwplayer.view {
 				_mediaLayer.addChild(_model.media.display);
 			}
 		}
-		
+
+		protected function itemHandler(evt:PlaylistEvent):void {
+			while (_mediaLayer.numChildren) {
+				_mediaLayer.removeChildAt(0);
+			}
+			if (_model.playlist.currentItem && _model.playlist.currentItem.image) {
+				loadImage(_model.playlist.currentItem.image);
+
+			}
+		}
+
+
+		protected function loadImage(url:String):void {
+			while (_imageLayer.numChildren) {
+				_imageLayer.removeChildAt(0);
+			}
+
+			_image = new AssetLoader();
+			_image.addEventListener(Event.COMPLETE, imageComplete);
+			_image.addEventListener(ErrorEvent.ERROR, imageError);
+			_image.load(url);
+		}
+
+
+		protected function imageComplete(evt:Event):void {
+			if (_image.loadedObject is Bitmap) {
+				Draw.smooth(_image.loadedObject as Bitmap);
+				_imageLayer.addChild(_image.loadedObject);
+				_imageLayer.x = _components.display.x;
+				_imageLayer.y = _components.display.y;
+				Stretcher.stretch(_image.loadedObject, _player.config.width, _player.config.height, _player.config.stretching);
+			} else {
+				_image = null;
+				Logger.log('Error loading preview image.');
+			}
+		}
+
+
 		protected function imageError(evt:ErrorEvent):void {
+			_image = null;
 			Logger.log('Error loading preview image: '+evt.text);
+			//dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, evt.text));
 		}
 
 
@@ -544,17 +486,14 @@ package com.longtailvideo.jwplayer.view {
 				case PlayerState.IDLE:
 					_imageLayer.visible = true;
 					_mediaLayer.visible = false;
-					if (_logo) _logo.visible = false;
+					_logoLayer.visible = false;
 					break;
 				case PlayerState.PLAYING:
-					_mediaLayer.visible = true;
 					if (_model.media.display) {
 						_imageLayer.visible = false;
+						_mediaLayer.visible = true;
 					}
-					if (_logo) _logo.visible = true;
-					break;
-				case PlayerState.BUFFERING:
-					if (_logo) _logo.visible = true;
+					_logoLayer.visible = true;
 					break;
 			}
 		}

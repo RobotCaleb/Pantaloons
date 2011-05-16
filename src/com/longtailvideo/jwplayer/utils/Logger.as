@@ -1,9 +1,6 @@
 package com.longtailvideo.jwplayer.utils {
 	import com.longtailvideo.jwplayer.model.PlayerConfig;
 	
-	import flash.events.AsyncErrorEvent;
-	import flash.events.Event;
-	import flash.events.SecurityErrorEvent;
 	import flash.events.StatusEvent;
 	import flash.external.ExternalInterface;
 	import flash.net.LocalConnection;
@@ -32,8 +29,7 @@ package com.longtailvideo.jwplayer.utils {
 		/** Constant defining the Flash tracing output type. **/
 		public static const TRACE:String = "trace";
 		/** Reference to the player config **/
-		private static var _config:PlayerConfig;		 
-		
+		private static var _config:PlayerConfig;
 		
 		/**
 		 * Log a message to the output system.
@@ -42,18 +38,14 @@ package com.longtailvideo.jwplayer.utils {
 		 * @param type		The type of message; is capitalized and encapsulates the message.
 		 **/
 		public static function log(message:*, type:String = "log"):void {
-			try{
-				if (message == undefined) {
-					send(type.toUpperCase());
-				} else if (message is String) {
-					send(type.toUpperCase() + ' (' + message + ')');
-				} else if (message is Boolean || message is Number || message is Array) {
-					send(type.toUpperCase() + ' (' + message.toString() + ')');
-				} else {
-					Logger.object(message, type);
-				}
-			} catch (err:Error){
-				trace(message);
+			if (message == undefined) {
+				send(type.toUpperCase());
+			} else if (message is String) {
+				send(type.toUpperCase() + ' (' + message + ')');
+			} else if (message is Boolean || message is Number || message is Array) {
+				send(type.toUpperCase() + ' (' + message.toString() + ')');
+			} else {
+				Logger.object(message, type);
 			}
 		}
 		
@@ -66,16 +58,27 @@ package com.longtailvideo.jwplayer.utils {
 			Logger.send(txt);
 		}
 		
+		
+		/**
+		 * Set output system to use for logging. The output is also saved in a cookie.
+		 *
+		 * @param put	System to use (ARTHROPOD, CONSOLE, TRACE or NONE).StatusEvent
+		 **/
+		private function updateOutput():void {
+			if (_config.debug == ARTHROPOD) {
+				CONNECTION.allowInsecureDomain('*');
+				CONNECTION.addEventListener(StatusEvent.STATUS, Logger.status);
+			}
+		}
+		
+		
 		/** Send the messages to the output system. **/
 		private static function send(text:String):void {
 			var debug:String = _config ? _config.debug : TRACE;
+			
 			switch (debug) {
 				case ARTHROPOD:
-					try {
-						CONNECTION.send(CONNECTION_NAME, 'debug', 'CDC309AF', text,	0xCCCCCC);
-					} catch(e:Error) {
-						trace(text);					
-					}
+					CONNECTION.send(CONNECTION_NAME, 'debug', 'CDC309AF', text,	0xCCCCCC);
 					break;
 				case CONSOLE:
 					if (ExternalInterface.available) {
@@ -99,14 +102,9 @@ package com.longtailvideo.jwplayer.utils {
 			_config = config;
 		}
 		
-		CONNECTION.addEventListener(AsyncErrorEvent.ASYNC_ERROR, localConnectionEventHandler);
-		CONNECTION.addEventListener(SecurityErrorEvent.SECURITY_ERROR, localConnectionEventHandler);
-		CONNECTION.addEventListener(StatusEvent.STATUS, localConnectionEventHandler);
 		
-		/**
-		 * Handle LocalConnection events 
-		 **/
-		private static function localConnectionEventHandler(evt:Event):void{
+		/** Manage the status call of localconnection. **/
+		private static function status(evt:StatusEvent):void {
 		}
 	}
 }

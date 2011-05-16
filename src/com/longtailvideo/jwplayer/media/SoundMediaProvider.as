@@ -7,13 +7,12 @@ package com.longtailvideo.jwplayer.media {
 	import com.longtailvideo.jwplayer.model.PlayerConfig;
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
 	import com.longtailvideo.jwplayer.player.PlayerState;
-	import com.longtailvideo.jwplayer.utils.Logger;
 	
 	import flash.events.*;
 	import flash.media.*;
 	import flash.net.URLRequest;
 	import flash.utils.*;
-
+	import flash.display.DisplayObject;
 
 	public class SoundMediaProvider extends MediaProvider {
 		/** _sound object to be instantiated. **/
@@ -28,10 +27,8 @@ package com.longtailvideo.jwplayer.media {
 		protected var _positionInterval:Number;
 		/** Whether the buffer has filled **/
 		private var _bufferFull:Boolean;
-		/** Whether the enitre sound file has been buffered **/
+		/** Whether the enitre video has been buffered **/
 		private var _bufferingComplete:Boolean;
-		/** User-defined item duration **/
-		private var _userDuration:Number = -1;
 		
 		/** Constructor; sets up the connection and display. **/
 		public function SoundMediaProvider() {
@@ -43,7 +40,7 @@ package com.longtailvideo.jwplayer.media {
 		public override function initializeMediaProvider(cfg:PlayerConfig):void {
 			super.initializeMediaProvider(cfg);
 			_transformer = new SoundTransform();
-			_context = new SoundLoaderContext(0, true);
+			_context = new SoundLoaderContext(config.bufferlength * 1000, true);
 		}
 
 
@@ -59,7 +56,19 @@ package com.longtailvideo.jwplayer.media {
 			error(evt.text);
 		}
 
-
+		public override function getRawMedia():DisplayObject
+		{
+			return null
+			
+		}
+		
+		public override function getTime():Number
+		{	
+				return -1;
+					
+		}
+		
+		
 		/** Forward ID3 data from the _sound. **/
 		private function id3Handler(evt:Event):void {
 			try {
@@ -68,7 +77,7 @@ package com.longtailvideo.jwplayer.media {
 						artist: id3.artist, comment: id3.comment,
 						genre: id3.genre, name: id3.songName, track: id3.track,
 						year: id3.year}
-				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_META, {metadata:obj});
+				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_META, obj);
 			} catch (err:Error) {
 			}
 		}
@@ -78,9 +87,8 @@ package com.longtailvideo.jwplayer.media {
 		override public function load(itm:PlaylistItem):void {
 			_position = 0;
 			_bufferFull = false;
-			_userDuration = itm.duration;
-			if (!_item || _item.file != itm.file || !_bufferingComplete) {
-				_bufferingComplete = false;
+			_bufferingComplete = false;
+			if (!_item || _item.file != itm.file) {
 				_item = itm;
 				_sound = new Sound();
 				_sound.addEventListener(IOErrorEvent.IO_ERROR, errorHandler);
@@ -92,10 +100,10 @@ package com.longtailvideo.jwplayer.media {
 				_positionInterval = setInterval(positionHandler, 100);
 			}
 
-			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_LOADED);
 			setState(PlayerState.BUFFERING);
 			sendBufferEvent(0);
-			streamVolume(config.mute ? 0 : config.volume);
+			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_LOADED);
+			config.mute == true ? setVolume(0) : setVolume(config.volume);
 		}
 
 
@@ -105,7 +113,6 @@ package com.longtailvideo.jwplayer.media {
 				clearInterval(_positionInterval);
 				_positionInterval = undefined;
 			}
-			
 			if (_channel) {
 				_channel.stop();
 			}
@@ -134,68 +141,55 @@ package com.longtailvideo.jwplayer.media {
 
 		/** Interval for the _position progress **/
 		protected function positionHandler(progressEvent:ProgressEvent=null):void {
-			var bufferPercent:Number = 0;
-			var bufferTime:Number = 0;
-			var bufferLength:Number = config.bufferlength;
+			var bufferPercent:Number;
 			
-			if (_userDuration < 0) {
-				if (_sound.bytesTotal > 0 && _sound.bytesLoaded / _sound.bytesTotal > 0.1) {
-					_item.duration = _sound.length / 1000 / _sound.bytesLoaded * _sound.bytesTotal;
-				} else if (_sound.length > 0) {
-					_item.duration = Math.floor(_sound.length / 100) / 10;
-				}
+			if (_sound.bytesLoaded / _sound.bytesTotal > 0.1 && _item.duration <= 0) {
+				_item.duration = _sound.length / 1000 / _sound.bytesLoaded * _sound.bytesTotal;
 			}
 			
 			if (_channel) {
-				_position = Math.floor(_channel.position / 100) / 10;
-			} 
-			if (_item.duration != 0 || _userDuration == 0) {
-				if (_sound.bytesTotal > 0) {
-					bufferPercent = Math.floor(_sound.bytesLoaded / _sound.bytesTotal * 100);
-					bufferTime = Math.max(0, (_sound.bytesLoaded / _sound.bytesTotal) * _item.duration - _position);
-					bufferLength = Math.min(bufferLength, _item.duration - _position);
-				} else {
-					bufferPercent = 0;
-					bufferTime = 1;
-					bufferLength = 0;
-				}
+				_position = Math.round(_channel.position / 100) / 10;
+				bufferPercent = Math.floor(_sound.bytesLoaded / _sound.bytesTotal * 100);
+			} else if (!_channel && progressEvent) {
+				bufferPercent = Math.floor(progressEvent.bytesLoaded / progressEvent.bytesTotal * 100);
 			}
-
-				
-			if (state == PlayerState.BUFFERING && !_bufferFull && bufferTime >= bufferLength) {
+			
+			if (_sound.isBuffering == true && _sound.bytesTotal > _sound.bytesLoaded) {
+				if (state != PlayerState.BUFFERING) {
+					_bufferFull = false;
+					if (_channel) {
+						_channel.stop();
+					}
+					if (!progressEvent) {
+						setState(PlayerState.BUFFERING);
+					}
+				}
+			} else if (state == PlayerState.BUFFERING && _sound.isBuffering == false && !_bufferFull) {
 				_bufferFull = true;
 				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_BUFFER_FULL);
-			} else if (state == PlayerState.PLAYING && bufferTime < (bufferLength / 3)) {
-				// Buffer underrun condition
-				_bufferFull = false;
-				if (_channel) {
-					_channel.stop();
+			}
+			
+			
+			if (state == PlayerState.BUFFERING || state == PlayerState.PAUSED) {
+				if (!isNaN(bufferPercent) && !_bufferingComplete){
+					if (bufferPercent == 100 && _bufferingComplete == false) {
+						_bufferingComplete = true;
+					}
+					sendBufferEvent(bufferPercent);
 				}
-				setState(PlayerState.BUFFERING);
-				return;
-			}
-			
-			if (_channel && !isNaN(bufferPercent) && bufferPercent > 0 && !_bufferingComplete){
-				if (bufferPercent == 100 && _bufferingComplete == false) {
-					_bufferingComplete = true;
+			} else if (_position < _item.duration) {
+				if (state == PlayerState.PLAYING){
+					sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_TIME, {position: _position, duration: _item.duration, bufferPercent: bufferPercent});
 				}
-				sendBufferEvent(bufferPercent, 0, {loaded:_sound.bytesLoaded, total:_sound.bytesTotal});
-			}
-			
-			if (state != PlayerState.PLAYING) {
-				return;
-			}
-			
-			if (_position < _item.duration) {
-				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_TIME, {position: _position, duration: _item.duration});
-			} else if (_item.duration > 0 && _sound.bytesTotal > 0) {
+			} else if (_item.duration > 0) {
 				complete();
 			}
 		}
-		
+
+
 		/** Seek in the _sound. **/
 		override public function seek(pos:Number):void {
-			if ( (_userDuration >= 0 && pos < _userDuration) || (_userDuration < 0 && _sound && pos < _sound.length) || item.start) { 
+			if (_sound && (pos < (_sound.bytesLoaded / _sound.bytesTotal) * item.duration) || item.start) {
 				clearInterval(_positionInterval);
 				_positionInterval = undefined;
 				if (_channel) {
@@ -211,7 +205,6 @@ package com.longtailvideo.jwplayer.media {
 		override public function stop():void {
 			clearInterval(_positionInterval);
 			_positionInterval = undefined;
-			item.duration = _userDuration;
 			super.stop();
 			if (_channel) {
 				_channel.stop();
@@ -226,16 +219,10 @@ package com.longtailvideo.jwplayer.media {
 
 		/** Set the volume level. **/
 		override public function setVolume(vol:Number):void {
-			streamVolume(vol);
-			super.setVolume(vol);
-		}
-		
-
-		/** Set the stream's volume, without sending a volume event **/
-		protected function streamVolume(level:Number):void {
-			_transformer.volume = level / 100;
+			_transformer.volume = vol / 100;
 			if (_channel) {
 				_channel.soundTransform = _transformer;
+				super.setVolume(vol);
 			}
 		}
 	}

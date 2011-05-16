@@ -1,402 +1,203 @@
 package com.longtailvideo.jwplayer.player {
-	import com.longtailvideo.jwplayer.events.MediaEvent;
-	import com.longtailvideo.jwplayer.events.PlayerEvent;
-	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
-	import com.longtailvideo.jwplayer.events.PlaylistEvent;
-	import com.longtailvideo.jwplayer.events.ViewEvent;
-	import com.longtailvideo.jwplayer.model.Playlist;
-	import com.longtailvideo.jwplayer.utils.JavascriptSerialization;
-	import com.longtailvideo.jwplayer.utils.Logger;
-	import com.longtailvideo.jwplayer.utils.RootReference;
-	import com.longtailvideo.jwplayer.utils.Strings;
-	
-	import flash.events.Event;
-	import flash.events.TimerEvent;
-	import flash.external.ExternalInterface;
-	import flash.utils.Timer;
-	import flash.utils.setTimeout;
-	
-	public class JavascriptAPI {
-		protected var _player:IPlayer;
-		protected var _playerBuffer:Number = 0;
-		protected var _playerPosition:Number = 0;
-		
-		protected var _listeners:Object;
-		protected var _queuedEvents:Array = [];
 
-		
+	import com.jeroenwijering.events.ControllerEvent;
+	import com.jeroenwijering.events.ModelEvent;
+	import com.jeroenwijering.events.ViewEvent;
+	import com.longtailvideo.jwplayer.events.PlayerEvent;
+	import com.longtailvideo.jwplayer.utils.Logger;
+	
+	import flash.external.ExternalInterface;
+
+	public class JavascriptAPI {
+		private var _player:IPlayer;
+		private var _emu:PlayerV4Emulation;
+
+		private var controllerCallbacks:Object;		
+		private var modelCallbacks:Object;		
+		private var viewCallbacks:Object;		
+
 		public function JavascriptAPI(player:IPlayer) {
-			_listeners = {};
-			
 			_player = player;
 			_player.addEventListener(PlayerEvent.JWPLAYER_READY, playerReady);
 
-			setupPlayerListeners();
-			setupJSListeners();
-			_player.addGlobalListener(queueEvents);
+			_emu = PlayerV4Emulation.getInstance(_player);
 			
+			controllerCallbacks = {};
+			modelCallbacks = {};
+			viewCallbacks = {};
+			
+			setupListeners();
 		}
 		
-		/** Delay the response to PlayerReady to allow the external interface to initialize in some browsers **/
-		protected function playerReady(evt:PlayerEvent):void {
-			var timer:Timer = new Timer(50, 1);
+		private function playerReady(evt:PlayerEvent):void {
+			var newEvt:PlayerEvent = new PlayerEvent("");
 			
-			timer.addEventListener(TimerEvent.TIMER_COMPLETE, function(timerEvent:TimerEvent):void {
-				_player.removeGlobalListener(queueEvents);
-				var callbacks:String = _player.config.playerready ? _player.config.playerready + "," + "playerReady" : "playerReady";  
-				if (ExternalInterface.available) {
-					for each (var callback:String in callbacks.replace(/\s/,"").split(",")) {
-						try {
-							ExternalInterface.call(callback,{
-								id:evt.id,
-								client:evt.client,
-								version:evt.version
-							});
-						} catch (e:Error) {}
-					}
-					
-					clearQueuedEvents();
+			var callbacks:String = _player.config.playerready ? _player.config.playerready + "," + "playerReady" : "playerReady";  
+
+			if (ExternalInterface.available) {
+				for each (var callback:String in callbacks.replace(/\s/,"").split(",")) {
+					try {
+						ExternalInterface.call(callback,{
+							id:newEvt.id,
+							client:newEvt.client,
+							version:newEvt.version
+						});
+					} catch (e:Error) {}
 				}
-				
-
-			});
-			timer.start();
-		}
-
-		protected function queueEvents(evt:PlayerEvent):void {
-			_queuedEvents.push(evt);
+			}			
 		}
 		
-		protected function clearQueuedEvents():void {
-			for each (var queuedEvent:PlayerEvent in _queuedEvents) {
-				listenerCallback(queuedEvent);
-			}
-			_queuedEvents = null;
-		}
-		
-		protected function setupPlayerListeners():void {
-			_player.addEventListener(PlaylistEvent.JWPLAYER_PLAYLIST_ITEM, resetPosition);
-			_player.addEventListener(MediaEvent.JWPLAYER_MEDIA_TIME, updatePosition);
-			_player.addEventListener(MediaEvent.JWPLAYER_MEDIA_BUFFER, updateBuffer);
-		}
-		
-		protected function resetPosition(evt:PlaylistEvent):void {
-			_playerPosition = 0;
-			_playerBuffer = 0;
-		}
-		
-		protected function updatePosition(evt:MediaEvent):void {
-			_playerPosition = evt.position;
-		}
-
-		protected function updateBuffer(evt:MediaEvent):void {
-			_playerBuffer = evt.bufferPercent;
-		}
-
-		protected function setupJSListeners():void {
+		private function setupListeners():void {
 			try {
-				// Event handlers
-				ExternalInterface.addCallback("jwAddEventListener", js_addEventListener);
-				ExternalInterface.addCallback("jwRemoveEventListener", js_removeEventListener);
-				
-				// Getters
-				ExternalInterface.addCallback("jwGetBuffer", js_getBuffer);
-				ExternalInterface.addCallback("jwGetDuration", js_getDuration);
-				ExternalInterface.addCallback("jwGetFullscreen", js_getFullscreen);
-				ExternalInterface.addCallback("jwGetHeight", js_getHeight);
-				ExternalInterface.addCallback("jwGetMute", js_getMute);
-				ExternalInterface.addCallback("jwGetPlaylist", js_getPlaylist);
-				ExternalInterface.addCallback("jwGetPosition", js_getPosition);
-				ExternalInterface.addCallback("jwGetState", js_getState);
-				ExternalInterface.addCallback("jwGetWidth", js_getWidth);
-				ExternalInterface.addCallback("jwGetVersion", js_getVersion);
-				ExternalInterface.addCallback("jwGetVolume", js_getVolume);
-
-				// Player API Calls
-				ExternalInterface.addCallback("jwPlay", js_play);
-				ExternalInterface.addCallback("jwPause", js_pause);
-				ExternalInterface.addCallback("jwStop", js_stop);
-				ExternalInterface.addCallback("jwSeek", js_seek);
-				ExternalInterface.addCallback("jwLoad", js_load);
-				ExternalInterface.addCallback("jwPlaylistItem", js_playlistItem);
-				ExternalInterface.addCallback("jwPlaylistNext", js_playlistNext);
-				ExternalInterface.addCallback("jwPlaylistPrev", js_playlistPrev);
-				ExternalInterface.addCallback("jwDockSetButton", js_dockSetButton);
-				ExternalInterface.addCallback("jwSetMute", js_mute);
-				ExternalInterface.addCallback("jwSetVolume", js_volume);
-				ExternalInterface.addCallback("jwSetFullscreen", js_fullscreen);
-
-				// UNIMPLEMENTED
-				//ExternalInterface.addCallback("jwGetBandwidth", js_getBandwidth); 
-				//ExternalInterface.addCallback("jwGetLevel", js_getLevel);
-				//ExternalInterface.addCallback("jwGetLockState", js_getLockState);
-				
+				ExternalInterface.addCallback("addControllerListener",addJSControllerListener);
+				ExternalInterface.addCallback("addModelListener",addJSModelListener);
+				ExternalInterface.addCallback("addViewListener",addJSViewListener);
+				ExternalInterface.addCallback("removeControllerListener",removeJSControllerListener);
+				ExternalInterface.addCallback("removeModelListener",removeJSModelListener);
+				ExternalInterface.addCallback("removeViewListener",removeJSViewListener);
+				ExternalInterface.addCallback("getConfig",getConfig);
+				ExternalInterface.addCallback("getPlaylist",getPlaylist);
+				ExternalInterface.addCallback("getPluginConfig",getJSPluginConfig);
+				ExternalInterface.addCallback("loadPlugin",loadPlugin);
+				ExternalInterface.addCallback("sendEvent",sendEvent);
 			} catch(e:Error) {
-				Logger.log("Could not initialize JavaScript API: "  + e.message);
+				 Logger.log("Could not start up JavasScript API: " + e.message);
 			}
-			
+		}
+		
+
+		private function addJSControllerListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			if (!controllerCallbacks.hasOwnProperty(type)) { controllerCallbacks[type] = []; }
+			if ( (controllerCallbacks[type] as Array).indexOf(callback) < 0) {
+				(controllerCallbacks[type] as Array).push(callback);
+				_emu.addControllerListener(type, forwardControllerEvents);
+			}
+			return true;
+		}
+		
+		private function removeJSControllerListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			var listeners:Array = (controllerCallbacks[type] as Array);
+			var idx:Number = listeners ? listeners.indexOf(callback) : -1; 
+			if (idx >= 0) {
+				listeners.splice(idx, 1);
+				_emu.removeControllerListener(type.toUpperCase(), forwardControllerEvents);
+				return true;
+			} 
+			return false;
 		}
 
-		
-		/***********************************************
-		 **              EVENT LISTENERS              **
-		 ***********************************************/
-		
-		protected function js_addEventListener(eventType:String, callback:String):void {
-			if (!_listeners[eventType]) {
-				_listeners[eventType] = [];
-				_player.addEventListener(eventType, listenerCallback);
+
+		private function addJSModelListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			if (!modelCallbacks.hasOwnProperty(type)) { modelCallbacks[type] = []; }
+			if ( (modelCallbacks[type] as Array).indexOf(callback) < 0) {
+				(modelCallbacks[type] as Array).push(callback);
+				_emu.addModelListener(type, forwardModelEvents);
 			}
-			(_listeners[eventType] as Array).push(callback);
+			return true;
 		}
 		
-		protected function js_removeEventListener(eventType:String, callback:String):void {
-			var callbacks:Array = _listeners[eventType];
-			if (callbacks) {
-				var callIndex:Number = callbacks.indexOf(callback);
-				if (callIndex > -1) {
-					callbacks.splice(callIndex, 1);
-				}
+		private function removeJSModelListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			var listeners:Array = (modelCallbacks[type] as Array);
+			var idx:Number = listeners ? listeners.indexOf(callback) : -1; 
+			if (idx >= 0) {
+				listeners.splice(idx, 1);
+				_emu.removeModelListener(type.toUpperCase(), forwardModelEvents);
+				return true;
+			} 
+			return false;
+		}
+
+
+		private function addJSViewListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			if (!viewCallbacks.hasOwnProperty(type)) { viewCallbacks[type] = []; }
+			if ( (viewCallbacks[type] as Array).indexOf(callback) < 0) {
+				(viewCallbacks[type] as Array).push(callback);
+				_emu.addViewListener(type.toUpperCase(), forwardViewEvents);
 			}
+			return true;
 		}
 		
-		
-		
-		protected function listenerCallback(evt:PlayerEvent):void {
-			var args:Object;
-			
-			if (evt is MediaEvent)
-				args = listnerCallbackMedia(evt as MediaEvent);
-			else if (evt is PlayerStateEvent)
-				args = listenerCallbackState(evt as PlayerStateEvent);
-			else if (evt is PlaylistEvent)
-				args = listenerCallbackPlaylist(evt as PlaylistEvent);
-			else if (evt is ViewEvent && (evt as ViewEvent).data != null)
-				args = { data: JavascriptSerialization.stripDots((evt as ViewEvent).data) };
-			else
-				args = { message: evt.message };
-			
-			var callbacks:Array = _listeners[evt.type] as Array;
-			
-			//Insert 1ms delay to allow all Flash listeners to complete before notifying JavaScript
-			setTimeout(function():void {
-				if (callbacks) {
-					for each (var call:String in callbacks) {
-						ExternalInterface.call(call, args);
-					}
-				}
-			}, 1);
-			
+		private function removeJSViewListener(type:String,callback:String):Boolean {
+			type = type.toUpperCase();
+			var listeners:Array = (viewCallbacks[type] as Array);
+			var idx:Number = listeners ? listeners.indexOf(callback) : -1; 
+			if (idx >= 0) {
+				listeners.splice(idx, 1);
+				_emu.removeViewListener(type.toUpperCase(), forwardViewEvents);
+				return true;
+			} 
+			return false;
+		}
+
+		private function getConfig():Object {
+			return stripDots(_emu.config);
 		}
 		
-		protected function merge(obj1:Object, obj2:Object):Object {
+		private function stripDots(obj:Object):Object {
 			var newObj:Object = {};
-			
-			for (var key:String in obj1) {
-				newObj[key] = obj1[key];
+			for (var idx:String in obj) {
+				if (idx.indexOf(".") == -1) {
+					newObj[idx] = obj[idx];
+				}
 			}
-			
-			for (key in obj2) {
-				newObj[key] = obj2[key];
-			}
-			
 			return newObj;
 		}
 		
-		protected function listnerCallbackMedia(evt:MediaEvent):Object {
-			var returnObj:Object = {};
-
-			if (evt.bufferPercent >= 0) 		returnObj.bufferPercent = evt.bufferPercent;
-			if (evt.duration >= 0)		 		returnObj.duration = evt.duration;
-			if (evt.message)					returnObj.message = evt.message;
-			// todo: strip out 'name.properties' named properties
-			if (evt.metadata != null)	 		returnObj.metadata = JavascriptSerialization.stripDots(evt.metadata);
-			if (evt.offset > 0)					returnObj.offset = evt.offset;
-			if (evt.position >= 0)				returnObj.position = evt.position;
-
-			if (evt.type == MediaEvent.JWPLAYER_MEDIA_MUTE)
-				returnObj.mute = evt.mute;
-			
-			if (evt.type == MediaEvent.JWPLAYER_MEDIA_VOLUME)
-				returnObj.volume = evt.volume;
-
-			return returnObj;
-		}
-		
-		
-		protected function listenerCallbackState(evt:PlayerStateEvent):Object {
-			if (evt.type == PlayerStateEvent.JWPLAYER_PLAYER_STATE) {
-				return { newstate: evt.newstate, oldstate: evt.oldstate };
-			} else return {};
-		}
-
-		protected function listenerCallbackPlaylist(evt:PlaylistEvent):Object {
-			if (evt.type == PlaylistEvent.JWPLAYER_PLAYLIST_LOADED) {
-				var list:Array = JavascriptSerialization.playlistToArray(_player.playlist);
-				list = JavascriptSerialization.stripDots(list) as Array;
-				return { playlist: list };
-			} else if (evt.type == PlaylistEvent.JWPLAYER_PLAYLIST_ITEM) {
-				return { index: _player.playlist.currentIndex };
-			} else return {};
-		}
-
-		/***********************************************
-		 **                 GETTERS                   **
-		 ***********************************************/
-		
-		protected function js_getBandwidth():Number {
-			return _player.config.bandwidth;
-		}
-
-		protected function js_getBuffer():Number {
-			return _playerBuffer;
-		}
-		
-		protected function js_getDuration():Number {
-			return _player.playlist.currentItem ? _player.playlist.currentItem.duration : 0;
-		}
-		
-		protected function js_getFullscreen():Boolean {
-			return _player.config.fullscreen;
-		}
-
-		protected function js_getHeight():Number {
-			return RootReference.stage.stageHeight;
-		}
-		
-		protected function js_getLevel():Number {
-			return _player.playlist.currentItem ? _player.playlist.currentItem.currentLevel : 0;
-		}
-		
-		protected function js_getLockState():Boolean {
-			return _player.locked;
-		}
-		
-		protected function js_getMute():Boolean {
-			return _player.config.mute;
-		}
-		
-		protected function js_getPlaylist():Array {
-			var playlistArray:Array = JavascriptSerialization.playlistToArray(_player.playlist);
-			for (var i:Number=0; i < playlistArray.length; i++) {
-				playlistArray[i] = JavascriptSerialization.stripDots(playlistArray[i]);
+		private function getPlaylist():Object {
+			var arry:Array = [];
+			for each (var obj:Object in _emu.playlist) {
+				arry.push(stripDots(obj));
 			}
-			return playlistArray; 
+			return arry;
 		}
 		
-		protected function js_getPosition():Number {
-			return _playerPosition;
+		private function getJSPluginConfig(pluginId:String):Object {
+			return _player.config.pluginConfig(pluginId);
 		}
 		
-		protected function js_getState():String {
-			return _player.state;
-		}
-
-		protected function js_getWidth():Number {
-			return RootReference.stage.stageWidth;
-		}
-
-		protected function js_getVersion():String {
-			return _player.version;
-		}
-
-		protected function js_getVolume():Number {
-			return _player.config.volume;
-		}
-
-		/***********************************************
-		 **                 PLAYBACK                  **
-		 ***********************************************/
-
-		protected function js_dockSetButton(name:String,click:String=null,out:String=null,over:String=null):void {
-		    _player.controls.dock.setButton(name,click,out,over);
-		};
-	
-		protected function js_play(playstate:*=null):void {
-			if (playstate == null){
-				playToggle();
-			} else {
-				if (String(playstate).toLowerCase() == "true"){
-					_player.play();
-				} else {
-					_player.pause();
-				}
-			}
+		private function loadPlugin(plugin:String):Object {
+			return {error:'This function is no longer supported.'}
 		}
 		
-		
-		protected function js_pause(playstate:*=null):void {
-			if (playstate == null){
-				playToggle();
-			} else {
-				if (String(playstate).toLowerCase() == "true"){
-					_player.pause();
-				} else {
-					_player.play();	
-				}
-			}
+		private function sendEvent(type:String, data:Object = null):void {
+			_emu.sendEvent(type.toUpperCase(), data);
 		}
 		
-		protected function playToggle():void {
-			if (_player.state == PlayerState.IDLE || _player.state == PlayerState.PAUSED) {
-				_player.play();
-			} else {
-				_player.pause();
-			}
-		}
-		
-		protected function js_stop():void {
-			_player.stop();
-		}
-		
-		protected function js_seek(position:Number=0):void {
-			_player.seek(position);
-		}
-		
-		protected function js_load(toLoad:*):void {
-			_player.load(toLoad);
-		}
-		
-		protected function js_playlistItem(item:Number):void {
-			_player.playlistItem(item);
-		}
-
-		protected function js_playlistNext():void {
-			_player.playlistNext();
-		}
-
-		protected function js_playlistPrev():void {
-			_player.playlistPrev();
-		}
-
-		protected function js_mute(mutestate:*=null):void {
-			if (mutestate == null){
-				_player.mute(!_player.config.mute);
-			} else {
-				if (String(mutestate).toLowerCase() == "true") {
-					_player.mute(true);
-				} else {
-					_player.mute(false);
+		private function forwardControllerEvents(evt:ControllerEvent):void {
+			if (controllerCallbacks.hasOwnProperty(evt.type)) {
+				for each (var callback:String in controllerCallbacks[evt.type]) {
+					if (ExternalInterface.available) {
+						ExternalInterface.call(callback, evt.data);
+					}
 				}
 			}
 		}
 
-		protected function js_volume(volume:Number):void {
-			_player.volume(volume);
-		}
-
-		protected function js_fullscreen(fullscreenstate:*=null):void {
-			if (fullscreenstate == null){
-				_player.fullscreen(!_player.config.fullscreen);
-			} else {
-				if (String(fullscreenstate).toLowerCase() == "true") {
-					_player.fullscreen(true);
-				} else {
-					_player.fullscreen(false);
+		private function forwardModelEvents(evt:ModelEvent):void {
+			if (modelCallbacks.hasOwnProperty(evt.type)) {
+				for each (var callback:String in modelCallbacks[evt.type]) {
+					if (ExternalInterface.available) {
+						ExternalInterface.call(callback, evt.data);
+					}
 				}
 			}
 		}
-		
+
+		private function forwardViewEvents(evt:ViewEvent):void {
+			if (viewCallbacks.hasOwnProperty(evt.type)) {
+				for each (var callback:String in viewCallbacks[evt.type]) {
+					if (ExternalInterface.available) {
+						ExternalInterface.call(callback, evt.data);
+					}
+				}
+			}
+		}
+
 	}
 
 }

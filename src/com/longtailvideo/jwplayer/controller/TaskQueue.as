@@ -36,7 +36,6 @@ package com.longtailvideo.jwplayer.controller {
 		
 		private var continueOnFailure:Boolean;
 		private var failureState:Boolean = false;
-		private var completed:Boolean = false;
 		
 		public function TaskQueue(cont:Boolean=false) {
 			taskOrder = [];
@@ -98,8 +97,7 @@ package com.longtailvideo.jwplayer.controller {
 				activeTask = taskOrder.shift() as Function;
 				taskIndex++;
 				activeTask();
-			} else if (!completed) {
-				completed = true;
+			} else {
 				dispatchEvent(new Event(Event.COMPLETE));
 			}
 		}

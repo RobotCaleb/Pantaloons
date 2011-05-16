@@ -25,9 +25,8 @@ package com.longtailvideo.jwplayer.media
 		private var _projector:Projector;
 		private var _currentTime:Number;
 		private var _isPassthrough:Boolean;
-		private var _overrideProjection:Object;
+		private var _overrideFile:String;
 		private var _inputHandler:UnwarpInput;
-		private var _delayedBufferFull:Event;
 		/* when we receive the media, we check to see if it's a vw file.
 		if it is, we don't initiate the media automatically, but rather we wait until 
 		we receive the videowarp metadata. This avoids a "blip" where the file will initially
@@ -35,6 +34,7 @@ package com.longtailvideo.jwplayer.media
 		private var _isVWM:Boolean;
 		/* if the bufferfull arrives before we get the metadata, then we have to stop it and 
 		later send it once we get the metadata */
+		private var _needsBufferFull:Boolean;
 		
 		public function UnwarpMediaProxy(subProvider:MediaProvider)
 		{
@@ -42,8 +42,9 @@ package com.longtailvideo.jwplayer.media
 			_subProvider = subProvider;
 			_currentTime = -1;
 			_isPassthrough = false;
-			_overrideProjection = null;
+			_overrideFile = null;
 			_isVWM = false;
+			_needsBufferFull = false;
 		}
 	
 		/* This initializes any data sources */
@@ -55,14 +56,17 @@ package com.longtailvideo.jwplayer.media
 		
 		override public function load(itm:PlaylistItem):void 
 		{
+			
+			setState(PlayerState.BUFFERING);
 			_inputHandler = null;
 			_currentTime = 0;
 			_timeline = null;
 			_projector = null;
 			_isPassthrough = false;
-			_overrideProjection = null;
+			_overrideFile = null;
 			_isVWM = false;
-			_delayedBufferFull = null;
+			_needsBufferFull = false;
+			
 			/*check for the itm's extension */
 			if (itm.file != null && itm.file.indexOf('.')){
 				var extension:String = itm.file.slice(itm.file.indexOf('.')+1);
@@ -71,27 +75,13 @@ package com.longtailvideo.jwplayer.media
 				}
 			}
 			
-			if (itm.projection) 
+			if (itm.Projection && (!_projector || itm.ProjectionOverride)) 
 			{
-					_overrideProjection = new Object()
-					_overrideProjection.projection = itm.projection;
-					if (itm.tiltMin){
-						_overrideProjection.tiltMin = int(itm.tiltMin);	
-					}		
-					if (itm.tiltMax) {
-						_overrideProjection.tiltMax = int(itm.tiltMax);						
-					}
-					if (itm.panMin) {
-						_overrideProjection.panMin = int(itm.panMin);
-					}
-					if (itm.panMax) {
-						_overrideProjection.panMax = int(itm.panMax);
-					}
-				
-			}
-			if (!_isVWM && !_overrideProjection)
-			{
-				_isPassthrough = true;			
+				/* getting the width and height is tricky */
+				if (itm.ProjectionOverride)
+				{
+					_overrideFile = itm.Projection;
+				}
 			}
 			
 			_subProvider.addGlobalListener(subProviderListener);
@@ -102,9 +92,6 @@ package com.longtailvideo.jwplayer.media
 		protected function subProviderListener(e:Event):void
 		{
 			switch(e.type){
-				case MediaEvent.JWPLAYER_MEDIA_COMPLETE:
-					complete();
-					break;
 				case MediaEvent.JWPLAYER_MEDIA_META:
 					subMetadataCallback(e);
 					dispatchEvent(e);
@@ -114,30 +101,24 @@ package com.longtailvideo.jwplayer.media
 					break;
 				case MediaEvent.JWPLAYER_MEDIA_TIME:
 					updateTime(e);
-					this.dispatchEvent(e);
+					dispatchEvent(e);
 					break;
 				case MediaEvent.JWPLAYER_MEDIA_BUFFER_FULL:
-					/* If we're waiting on XMP data, then we need to delay playing (sending the buffer full
-					event) until after the XMP data has arrived. We store the buffer full event in a variable and
-					then dispatch the event after the XMP has been loaded */
-					if (_isPassthrough){
+					if (_projector != null || _isPassthrough){
 						this.dispatchEvent(e);
-					} else if (_timeline!=null){
-						this.dispatchEvent(e);
-					} else if (_timeline==null){
-						_delayedBufferFull = e;
+					} else {
+						_needsBufferFull = true;
 					}
 					break;
  				case PlayerStateEvent.JWPLAYER_PLAYER_STATE:		
 					/* The movie has stopped playing - probably because it is finished */
 					var event:PlayerStateEvent = e as PlayerStateEvent;
 					if (event.newstate == PlayerState.IDLE && event.oldstate == PlayerState.PLAYING) {
+						this.setState(PlayerState.IDLE);
 						this.stop();
+						break;
 					} 
-					if (event.newstate == PlayerState.BUFFERING) {
-						this.setState(PlayerState.BUFFERING);
-					} 
-					break;
+					
 				default:
 					this.dispatchEvent(e);
 					break;
@@ -145,46 +126,71 @@ package com.longtailvideo.jwplayer.media
 			
 		}
 		
+		
 		protected function subLoadedCallback(data:Object):void
 		{
 			var h:Number = getMediaWidth();
 			var w:Number = getMediaHeight();
 			
-			if (_isPassthrough){
+			if (_overrideFile) 
+			{		
+				var cue:Object = new Object();
+				_timeline = new Array();
+				cue.duration = 'always';				
+				cue.projection = new Projection();
+				cue.projection.guess(_overrideFile, h, w);
+				_timeline.push(cue);
+				
+			}
+			
+			if (!_projector  && _timeline){
+				initProjector(_timeline[0].projection);
+				
+				_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
+				this.media = _projector.media;
+				this.resize(_width, _height);
+				
+				if (_subProvider.getRawMedia() is Video)
+				{
+					var video:Video = _subProvider.getRawMedia() as Video;
+					video.addEventListener(Event.ENTER_FRAME, enterFrame);
+					/* this is the image case ... */	
+				} else if (_subProvider.getRawMedia() is Loader) {
+					_projector.update();
+				}
+				mediaRefresh();
+				_inputHandler = new UnwarpInput(_projector);
+				var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
+				event.data = _inputHandler;
+				dispatchEvent(event);
+			} else if (!_projector && !_timeline && !_isVWM) {
+				_isPassthrough = true;
 				this.media = _subProvider.getRawMedia();
 				mediaRefresh();
-			} else {
-				if (_overrideProjection) 
-				{		
-					var cue:Object = new Object();
-					_timeline = new Array();
-					cue.duration = 'always';				
-					cue.projection = new Projection();
-					cue.projection.guess(_overrideProjection, h, w);
-					_timeline.push(cue);	
-				}
-				
-				if (!_projector  && _timeline){
-					initProjector(_timeline[0].projection);
-					
-					_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
-					this.media = _projector.media;
-					this.resize(_width, _height);
-					_inputHandler = new UnwarpInput(_projector);
-					var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
-					event.data = _inputHandler;
-					dispatchEvent(event);
-				}
+
 			}
+
 		}
 
 		protected function mediaRefresh():void
 		{
-			dispatchEvent(new MediaEvent(MediaEvent.JWPLAYER_MEDIA_REFRESH));
-			/* if it's playing we actually have to set it to be visible */
-			if (this.state == PlayerState.PLAYING) {
-				this.media.visible = true;
+			
+			
+			if (this.state == PlayerState.BUFFERING) {
+				if (_needsBufferFull) {
+					dispatchEvent(new MediaEvent(MediaEvent.JWPLAYER_MEDIA_BUFFER_FULL));
+					_needsBufferFull = false;
+				}
+				dispatchEvent(new MediaEvent(MediaEvent.JWPLAYER_MEDIA_LOADED));
+				/*this.resize(_width, _height);*/
+			} else {
+				dispatchEvent(new MediaEvent(MediaEvent.JWPLAYER_MEDIA_REFRESH));
+				/* if it's playing we actually have to set it to be visible */
+				if (this.state == PlayerState.PLAYING) {
+					this.media.visible = true;
+				}
 			}
+			
 		}
 		
 		protected function forwardEvent(e:Event):void
@@ -209,37 +215,31 @@ package com.longtailvideo.jwplayer.media
 			if (_isPassthrough){
 				return;	
 			}
-			
+			//TypeError: Error #1009: Cannot access a property or method of a null object reference.
+			//0at com.longtailvideo.jwplayer.media::UnwarpMediaProxy/enterFrame()[/Users/susan/JWPano5.0Branch/src/com/longtailvideo/jwplayer/media/UnwarpMediaProxy.as:218]
 			if (_projector.busy()){ 
 				return;
 			}
 	
-			
 			updateTime(_subProvider.getTime());
-			try {
-				_projector.update();
-			} catch (e:Error) {	
-				trace(e)
-			} finally {
-				return;
-			}
+			
+			_projector.update();
 		}
 		
 		/* This is called to check if we need to move a new projection on the timeline */
 		protected function updateTime(currentTime:Object):void
 		{
 			
-			if (_isPassthrough)
-			{
-				return;
-			}
-			
 			if (currentTime is Event)
 			{
 				currentTime = currentTime.position;
 			}
 			
-
+			if (_isPassthrough)
+			{
+				return;
+			}
+			
 
 			
 			if (_timeline[_currentTime].duration != 'always' && ( currentTime > _timeline[_currentTime].end || currentTime < _timeline[_currentTime].start))
@@ -265,7 +265,7 @@ package com.longtailvideo.jwplayer.media
 				var metadata:Object = data.metadata;
 				if (metadata.hasOwnProperty('type')) {
 					if (metadata.type == "xmp"){
-						if (_overrideProjection){
+						if (_overrideFile){
 							return
 						}
 						try {
@@ -274,18 +274,27 @@ package com.longtailvideo.jwplayer.media
 							trace("Error parsing media xmp: ", error);
 						}
 						if (!_projector  && _timeline){
+							_isPassthrough = false;
 							initProjector(_timeline[0].projection);
 							_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
 							this.media = _projector.media;
 							this.resize(_width, _height);
+							if (_subProvider.getRawMedia() is Video){
+								var video:Video = _subProvider.getRawMedia() as Video;
+								video.addEventListener(Event.ENTER_FRAME, enterFrame);
+									/* this is the image case ... */	
+							} else if (_subProvider.getRawMedia() is Loader) {
+								_projector.update();
+							}
 							mediaRefresh();
 							_inputHandler = new UnwarpInput(_projector);
 							var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
 							event.data = _inputHandler;
 							dispatchEvent(event);
-						}
-						if (_delayedBufferFull != null){
-							dispatchEvent(_delayedBufferFull);
+						} else if (!_projector && !_timeline) {
+							_isPassthrough = true;
+							this.media = _subProvider.getRawMedia();
+							mediaRefresh();
 						}
 					}
 				}
@@ -295,15 +304,16 @@ package com.longtailvideo.jwplayer.media
 						/* we have to redo everything */
 						var h = getMediaWidth();
 						var w = getMediaHeight();
- 						if (_overrideProjection){
-							_timeline[_currentTime].projection.guess(_overrideProjection, w, h);
+ 						if (_overrideFile){
+							_timeline[_currentTime].projection.guess(_overrideFile, w, h);
 						}
 						_projector.switchSourceProjection(_timeline[_currentTime].projection)
 					}
 					resize(_width, _height);
 				}
 			}
-		}	
+			
+		}
 	
 		protected function getMediaWidth():int
 		{
@@ -353,7 +363,7 @@ package com.longtailvideo.jwplayer.media
 		
 		protected function parseXmp(info:Object):void
 		{
-			if (!_overrideProjection && _projector)
+			if (!_overrideFile && _projector)
 			{
 				return;
 			}
@@ -430,12 +440,6 @@ package com.longtailvideo.jwplayer.media
 		}
 	
 		override public function pause():void {
-			if (!_isPassthrough) {
-				if (_subProvider.getRawMedia() is Video){
-					var video:Video = _subProvider.getRawMedia() as Video;
-					//video.removeEventListener(Event.ENTER_FRAME, enterFrame);
-				}	
-			}
 			_subProvider.pause();
 			super.pause();
 		}
@@ -443,17 +447,7 @@ package com.longtailvideo.jwplayer.media
 		
 		/** Resume playback of the_item. **/
 		override public function play():void {
-			this.media.visible = true;
-			if (!_isPassthrough){
-				if (_subProvider.getRawMedia() is Video){
-					var video:Video = _subProvider.getRawMedia() as Video;
-					video.addEventListener(Event.ENTER_FRAME, enterFrame);
-					/* this is the image case ... */	
-				} else if (_subProvider.getRawMedia() is Loader) {
-					_projector.update();
-				}
-			}
-			mediaRefresh();
+			
 			_subProvider.play();
 			if (_inputHandler)
 			{
@@ -478,16 +472,15 @@ package com.longtailvideo.jwplayer.media
 		
 		/** Stop the image _postitionInterval. **/
 		override public function stop():void {
-			if (!_isPassthrough) {
-				if (_subProvider.getRawMedia() is Video){
-					var video:Video = _subProvider.getRawMedia() as Video;
-					video.removeEventListener(Event.ENTER_FRAME, enterFrame);
-				}
-			}
 			_subProvider.stop();
-			if (_inputHandler){
-				_inputHandler.terminate();
+			_inputHandler.terminate();
+			
+			if (_subProvider.getRawMedia() is Video)
+			{
+				var video:Video = _subProvider.getRawMedia() as Video;
+				video.removeEventListener(Event.ENTER_FRAME, enterFrame);
 			}
+			
 			super.stop();
 		}
 		

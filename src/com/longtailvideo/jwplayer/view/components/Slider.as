@@ -7,16 +7,16 @@ package com.longtailvideo.jwplayer.view.components {
 	import flash.events.MouseEvent;
 	import flash.geom.ColorTransform;
 	import flash.geom.Rectangle;
-	
-	
+
+
 	public class Slider extends Sprite {
+		public static var HORIZONTAL:String = "horizontal";
+		public static var VERTICAL:String = "vertical";
 		protected var _rail:Sprite;
 		protected var _buffer:Sprite;
 		protected var _progress:Sprite;
 		protected var _thumb:Sprite;
-		protected var _capLeft:Sprite;
-		protected var _capRight:Sprite;
-		protected var _clickArea:Sprite;
+		protected var _orientation:String;
 		protected var _currentThumb:Number = 0;
 		protected var _currentProgress:Number = 0;
 		protected var _currentBuffer:Number = 0;
@@ -31,33 +31,22 @@ package com.longtailvideo.jwplayer.view.components {
 		protected var _dragging:Boolean;
 		/** Lock state of the slider **/
 		protected var _lock:Boolean;
-		/** If the buffer has a percentage offset **/
-		protected var _bufferOffset:Number = 0;
-		
-		public function Slider(rail:DisplayObject, buffer:DisplayObject, progress:DisplayObject, thumb:DisplayObject, capLeft:DisplayObject=null, capRight:DisplayObject=null) {
+
+
+		//protected var _height:Number;
+		public function Slider(rail:DisplayObject, buffer:DisplayObject, progress:DisplayObject, thumb:DisplayObject, orientation:String) {
 			super();
-			
-			if (!rail || !progress) {
-				throw(new ArgumentError("Required slider elements missing"));
-			}
-			
-			this.buttonMode = true;
-			this.mouseChildren = true;
-			
+			addEventListener(MouseEvent.MOUSE_DOWN, downHandler);
+			addEventListener(MouseEvent.MOUSE_OVER, overHandler);
+			addEventListener(MouseEvent.MOUSE_OUT, outHandler);
 			_rail = addElement(rail, "rail", true);
 			_buffer = addElement(buffer, "buffer");
 			_progress = addElement(progress, "progress");
 			_thumb = addElement(thumb, "thumb");
-			_capLeft = addElement(capLeft, "capleft", true);
-			_capRight = addElement(capRight, "capright", true);
-			_clickArea = addElement(null, "clickarea", true);
-			
-			_clickArea.addEventListener(MouseEvent.MOUSE_DOWN, downHandler);
-			_clickArea.addEventListener(MouseEvent.MOUSE_OVER, overHandler);
-			_clickArea.addEventListener(MouseEvent.MOUSE_OUT, outHandler);
+			_orientation = orientation;
 		}
-		
-		
+
+
 		private function addElement(element:DisplayObject, name:String, visible:Boolean=false):Sprite {
 			if (!element) {
 				element = new Sprite();
@@ -67,74 +56,58 @@ package com.longtailvideo.jwplayer.view.components {
 			element.name = name;
 			return element as Sprite;
 		}
-		
-		
+
+
 		protected function setThumb(progress:Number):void {
 			_currentThumb = progress;
-		}
-		
-		
-		public function setProgress(progress:Number):void {
-			if (isNaN(progress)){
-				progress = 0;
+			if (_thumb) {
+				_thumb.visible = true;
 			}
+		}
+
+
+		public function setProgress(progress:Number):void {
 			_currentProgress = progress;
 			if (_progress) {
 				_progress.visible = true;
 			}
 			setThumb(progress);
 		}
-		
-		
+
+
 		public function setBuffer(buffer:Number):void {
 			_currentBuffer = buffer;
 			if (_buffer) {
 				_buffer.visible = true;
 			}
-			resize(this.width, this.height);
 		}
-		
-		public function setBufferOffset(offset:Number):void {
-			_bufferOffset = offset;
-		}
-		
+
+
 		public function resize(width:Number, height:Number):void {
 			var scale:Number = this.scaleX;
 			this.scaleX = 1;
-			_width = width * scale - _capLeft.width - _capRight.width;
+			_width = width * scale;
 			_height = height;
-			_capLeft.x = 0;
-			_capRight.x = width - _capRight.width;
-			
-			var railMap:DisplayObject = _rail.getChildByName("bitmap"); 
-			if (railMap) {
-				railMap.width = _width;
-				railMap.x = _capLeft.width;
-				resizeElement(railMap);
+			if (_rail.getChildByName("bitmap")) {
+				_rail.getChildByName("bitmap").width = _width;
+				resizeElement(_rail);
 			}
-			var bufferMap:DisplayObject = _buffer.getChildByName("bitmap"); 
-			if (bufferMap) {
-				bufferMap.width = _width;
-				bufferMap.x = _capLeft.width + _width * _bufferOffset / 100;
-				resizeElement(bufferMap, _currentBuffer);
+			if (_buffer.getChildByName("bitmap")) {
+				_buffer.getChildByName("bitmap").width = _width;
+				resizeElement(_buffer, _currentBuffer);
 			}
-			var progressMap:DisplayObject = _progress.getChildByName("bitmap"); 
-			if (progressMap && !_dragging) {
-				progressMap.width = _width;
-				progressMap.x = _capLeft.width;
-				resizeElement(progressMap, _currentProgress);
+			if (_progress.getChildByName("bitmap") && !_dragging) {
+				_progress.getChildByName("bitmap").width = _width;
+				resizeElement(_progress, _currentProgress);
 			}
 			if (_thumb && !_dragging) {
-				_thumb.x = _capLeft.width + (_width-_thumb.width) * _currentThumb / 100;
+				_thumb.x = (_width-_thumb.width) * _currentThumb / 100; 
 			}
-			_clickArea.graphics.clear();
-			_clickArea.graphics.beginFill(0, 0);
-			_clickArea.graphics.drawRect(_capLeft.width, 0, _width, height); 
 			verticalCenter();
 		}
-		
-		
-		private function resizeElement(element:DisplayObject, maskpercentage:Number=100):void {
+
+
+		private function resizeElement(element:Sprite, maskpercentage:Number=100):void {
 			if (element) {
 				if (_width && _height) {
 					var mask:Sprite;
@@ -143,22 +116,22 @@ package com.longtailvideo.jwplayer.view.components {
 					} else {
 						mask = new Sprite();
 						mask.name = "mask";
-						addChild(mask);
+						element.addChild(mask);
 						element.mask = mask;
 					}
-					mask.x = element.x;
+					mask.x = 0;
 					mask.graphics.clear();
-					mask.graphics.beginFill(0x0000ff, 0);
-					mask.graphics.drawRect(0, 0, _width * maskpercentage / 100, element.height);
+					mask.graphics.beginFill(0x000000, 0);
+					mask.graphics.drawRect(element.x, 0, _width * maskpercentage / 100, element.height);
 					mask.graphics.endFill();
 				}
 			}
 		}
-		
+
 		private function verticalCenter():void {
 			var maxHeight:Number = 0;
 			var element:DisplayObject;
-			
+
 			for(var i:Number = 0; i < numChildren; i++) {
 				element = getChildAt(i);
 				if (element.height > maxHeight) maxHeight = element.height;
@@ -169,41 +142,41 @@ package com.longtailvideo.jwplayer.view.components {
 				element.y = (maxHeight - element.height) / 2;
 			}
 		}
-		
+
 		/** Handle mouse downs. **/
 		private function downHandler(evt:MouseEvent):void {
 			if (_thumb && !_lock) {
-				var rct:Rectangle = new Rectangle(_capLeft.width, _thumb.y, _rail.width - _thumb.width, 0);
+				var rct:Rectangle = new Rectangle(_rail.x, _thumb.y, _rail.width - _thumb.width, 0);
 				_thumb.startDrag(true, rct);
 				_dragging = true;
 				RootReference.stage.addEventListener(MouseEvent.MOUSE_UP, upHandler);
 			}
 		}
-		
-		
+
+
 		/** Handle mouse releases. **/
 		private function upHandler(evt:MouseEvent):void {
 			RootReference.stage.removeEventListener(MouseEvent.MOUSE_UP, upHandler);
 			_thumb.stopDrag();
 			_dragging = false;
-			var percent:Number = (_thumb.x - _capLeft.width) / (_rail.width - _thumb.width);
+			var percent:Number = (_thumb.x - _rail.x) / (_rail.width - _thumb.width);
 			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_CLICK, percent));
 			setThumb(percent * 100);
 		}
-		
-		
+
+
 		/** Handle mouseouts. **/
 		private function outHandler(evt:MouseEvent):void {
 			//slider.transform.colorTransform = front;
 		}
-		
-		
+
+
 		/** Handle mouseovers. **/
 		private function overHandler(evt:MouseEvent):void {
 			//slider.transform.colorTransform = light;
 		}
-		
-		/** Reset the slider to its original state**/
+
+		/** Reset the slider to it's original state**/
 		public function reset():void {
 			setBuffer(0);
 			setProgress(0);
@@ -215,18 +188,6 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		public function unlock():void{
 			_lock = false;
-		}
-		
-		public function get thumbVisible():Boolean {
-			return _thumb.visible;
-		}
-		
-		public function set thumbVisible(state:Boolean):void {
-			_thumb.visible = state;
-		}
-		
-		public function get capsWidth():Number {
-			return _capLeft.width + _capRight.width;
 		}
 	}
 }

@@ -51,12 +51,7 @@
 						itm['duration'] = Strings.seconds(i.text());
 						break;
 					case 'meta':
-						itm[Strings.xmlAttribute(i, 'rel')] = i.text().toString();
-						break;
-					case 'extension':
-						for each (var ext:XML in i.children()) {
-							itm[ext.localName().toLowerCase()] = ext.text().toString();
-						}
+						itm[i.@rel] = i.text().toString();
 						break;
 				}
 			}

@@ -130,9 +130,7 @@ package com.longtailvideo.jwplayer.utils {
 		}
 		
 		private function setConfigParam(name:String, value:String):void {
-			if (name != "fullscreen") {
-				_config[name.toLowerCase()] = Strings.serialize(Strings.trim(value));
-			}
+			_config[name.toLowerCase()] = Strings.serialize(Strings.decode(value));
 		}
 
 	}

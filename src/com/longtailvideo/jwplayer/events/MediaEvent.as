@@ -7,8 +7,7 @@ package com.longtailvideo.jwplayer.events {
 	 * @see com.longtailvideo.media.MediaProvider 
 	 */
 	public class MediaEvent extends PlayerEvent {
-		
-		public static var JWPLAYER_MEDIA_REFRESH:String ="jwplayerMediaRefresh";
+
 		/**
 	     *  The <code>MediaEvent.JWPLAYER_MEDIA_BUFFER</code> constant defines the value of the 
      	 *  <code>type</code> property of the event object for a <code>jwplayerMediaBuffer</code> event.
@@ -160,10 +159,14 @@ package com.longtailvideo.jwplayer.events {
 	     *  @eventType jwplayerMediaMute
 		 */
 		public static var JWPLAYER_MEDIA_MUTE:String = "jwplayerMediaMute";
+		
+		
+		
+		public static var JWPLAYER_MEDIA_REFRESH:String ="jwplayerMediaRefresh";
 
 		public var bufferPercent:Number 	= -1;
 		public var duration:Number 			= -1;
-		public var metadata:Object 			= null;
+		public var metadata:Object 			= {};
 		public var position:Number 			= -1;
 		public var offset:Number			= 0;
 		public var volume:Number 			= -1;
@@ -187,19 +190,20 @@ package com.longtailvideo.jwplayer.events {
 		
 		public override function toString():String {
 			var retString:String = '[MediaEvent type="' + type + '"';
-			var defaults:MediaEvent = new MediaEvent("");
 
-			for (var s:String in metadata) {
-				retString += ' ' + s + '="' + metadata[s] + '"';
+			if (this.type == MediaEvent.JWPLAYER_MEDIA_META) {
+				for (var s:String in metadata) {
+					retString += ' ' + s + '="' + metadata[s] + '"';
+				}
+			} else {
+				retString += ' bufferPercent="' + bufferPercent + '"';
+				retString += ' duration="' + duration + '"';
+				retString += ' position="' + position + '"';
+				retString += ' offset="' + offset + '"';
+				retString += ' volume="' + volume + '"';
+				retString += ' mute="' + mute + '"';
+				retString += ' message="' + message + '"';
 			}
-
-			if (bufferPercent != defaults.bufferPercent) retString += ' bufferPercent="' + bufferPercent + '"';
-			if (duration != defaults.duration) retString += ' duration="' + duration + '"';
-			if (position != defaults.position) retString += ' position="' + position + '"';
-			if (offset != defaults.offset) retString += ' offset="' + offset + '"';
-			if (volume != defaults.volume) retString += ' volume="' + volume + '"';
-			if (mute != defaults.mute) retString += ' mute="' + mute + '"';
-			if (message != defaults.message) retString += ' message="' + message + '"';
 			
 			retString += ' id="' + id + '"'
 			retString += ' client="' + client + '"'

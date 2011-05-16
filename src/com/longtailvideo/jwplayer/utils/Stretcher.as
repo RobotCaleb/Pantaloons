@@ -4,8 +4,6 @@
 package com.longtailvideo.jwplayer.utils {
 
 	import flash.display.DisplayObject;
-	import flash.display.Sprite;
-	import flash.geom.Rectangle;
 
 	public class Stretcher {
 
@@ -60,10 +58,11 @@ package com.longtailvideo.jwplayer.utils {
 			}
 			clp.x = Math.round(wid / 2 - clp.width / 2);
 			clp.y = Math.round(hei / 2 - clp.height / 2);
-			if (clp.width > 0) clp.width = Math.ceil(clp.width);
-			if (clp.height > 0) clp.height = Math.ceil(clp.height);
-		}
+			clp.width = Math.ceil(clp.width);
+			clp.height = Math.ceil(clp.height);
 		
+		}
+
 	}
 
 }

@@ -12,7 +12,7 @@ package com.longtailvideo.jwplayer.parsers {
 		public function parse(dat:XML):Array {
 			var arr:Array = new Array();
 			for each (var i:XML in dat.children()) {
-				if (i.localName().toLowerCase() == 'entry') {
+				if (i.localName() == 'entry') {
 					arr.push(parseItem(i));
 				}
 			}
@@ -28,13 +28,13 @@ package com.longtailvideo.jwplayer.parsers {
 				}
 				switch (i.localName().toLowerCase()) {
 					case 'ref':
-						itm['file'] = Strings.xmlAttribute(i, 'href');
+						itm['file'] = i.@href.toString();
 						break;
 					case 'title':
 						itm['title'] = i.text().toString();
 						break;
 					case 'moreinfo':
-						itm['link'] = Strings.xmlAttribute(i, 'href');
+						itm['link'] = i.@href.toString();
 						break;
 					case 'abstract':
 						itm['description'] = i.text().toString();
@@ -43,13 +43,13 @@ package com.longtailvideo.jwplayer.parsers {
 						itm['author'] = i.text().toString();
 						break;
 					case 'duration':
-						itm['duration'] = Strings.seconds(Strings.xmlAttribute(i, 'value'));
+						itm['duration'] = Strings.seconds(i.@value.toString());
 						break;
 					case 'starttime':
-						itm['start'] = Strings.seconds(Strings.xmlAttribute(i, 'value'));
+						itm['start'] = Strings.seconds(i.@value.toString());
 						break;
 					case 'param':
-						itm[Strings.xmlAttribute(i, 'name')] = Strings.xmlAttribute(i, 'value');
+						itm[i.@name] = i.@value.toString();
 						break;
 				}
 			}

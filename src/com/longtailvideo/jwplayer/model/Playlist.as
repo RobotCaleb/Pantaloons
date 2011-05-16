@@ -2,7 +2,6 @@ package com.longtailvideo.jwplayer.model {
 	import com.longtailvideo.jwplayer.events.GlobalEventDispatcher;
 	import com.longtailvideo.jwplayer.events.PlayerEvent;
 	import com.longtailvideo.jwplayer.events.PlaylistEvent;
-	import com.longtailvideo.jwplayer.media.YouTubeMediaProvider;
 	import com.longtailvideo.jwplayer.parsers.IPlaylistParser;
 	import com.longtailvideo.jwplayer.parsers.JWParser;
 	import com.longtailvideo.jwplayer.parsers.ParserFactory;
@@ -51,8 +50,6 @@ package com.longtailvideo.jwplayer.model {
 		private var index:Number;
 		/** Keep track of the last playlistItem, so we can send a PLAYLIST_ITEM event at the correct time **/
 		private var lastItem:PlaylistItem = null;
-		/** AssetLoader to grab playlist XML files **/
-		private var playlistLoader:AssetLoader;
 		
 		/**
 		 * Constructor
@@ -60,9 +57,6 @@ package com.longtailvideo.jwplayer.model {
 		public function Playlist() {
 			list = [];
 			index = -1;
-			playlistLoader = new AssetLoader();
-			playlistLoader.addEventListener(Event.COMPLETE, playlistLoaded);
-			playlistLoader.addEventListener(ErrorEvent.ERROR, playlistLoadError);
 		}
 		
 		
@@ -86,7 +80,8 @@ package com.longtailvideo.jwplayer.model {
 				}
 			} else if (newPlaylist is PlaylistItem) {
 				var pli:PlaylistItem = newPlaylist as PlaylistItem;
-				if (JWParser.getProvider(pli)) {
+				JWParser.updateProvider(pli);
+				if (pli.provider) {
 					newList.push(pli);
 				} else {
 					load(pli.file);
@@ -97,6 +92,9 @@ package com.longtailvideo.jwplayer.model {
 					newList.push((newPlaylist as Playlist).getItemAt(i));
 				}
 			} else if (newPlaylist is String && newPlaylist != "") {
+				var playlistLoader:AssetLoader = new AssetLoader();
+				playlistLoader.addEventListener(Event.COMPLETE, playlistLoaded);
+				playlistLoader.addEventListener(ErrorEvent.ERROR, playlistLoadError);
 				playlistLoader.load(String(newPlaylist), XML);
 				return;
 			} else {
@@ -104,17 +102,10 @@ package com.longtailvideo.jwplayer.model {
 				return;
 			}
 			if (newList.length > 0) {
-				for each(var item:PlaylistItem in newList) {
-					if (!item.provider) {
-						item.provider = JWParser.getProvider(item);
-					}
-					if (item.provider == "youtube" && !item.image) {
-						item.image = 'http://i.ytimg.com/vi/' + YouTubeMediaProvider.getID(item.file) + '/0.jpg';
-					}
-				}
 				list = newList;
 				index = 0;
 				dispatchEvent(new PlaylistEvent(PlaylistEvent.JWPLAYER_PLAYLIST_LOADED, this));
+				currentIndex = 0;
 			} else {
 				dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, "Loaded playlist is empty"));
 			}
@@ -123,7 +114,8 @@ package com.longtailvideo.jwplayer.model {
 		
 		
 		protected function playlistLoaded(evt:Event):void {
-			var loadedXML:XML = playlistLoader.loadedObject as XML;
+			var loader:AssetLoader = evt.target as AssetLoader;
+			var loadedXML:XML = loader.loadedObject as XML;
 			var parser:IPlaylistParser = ParserFactory.getParser(loadedXML);
 			if (parser) {
 				var playlistItems:Array = parser.parse(loadedXML);
@@ -144,11 +136,7 @@ package com.longtailvideo.jwplayer.model {
 		
 		
 		protected function playlistError(message:String):void {
-			if (message.indexOf("Error #2048") >= 0) {
-				dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, "Playlist could not be loaded due to crossdomain policy restrictions."));
-			} else {
-				dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, "Playlist could not be loaded: " + message));
-			}
+			dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, "Playlist could not be loaded: " + message));
 		}
 		
 		
@@ -206,16 +194,15 @@ package com.longtailvideo.jwplayer.model {
 		 * @inheritDoc
 		 */
 		public function set currentIndex(idx:Number):void {
-			if (idx > list.length) idx = 0;
-			if (idx >= 0) {
-				index = idx;
-				if (getItemAt(idx) != lastItem) {
+			if (getItemAt(idx) != lastItem) {
+				if (idx >= 0) {
+					index = idx;
 					lastItem = currentItem;
 					dispatchEvent(new PlaylistEvent(PlaylistEvent.JWPLAYER_PLAYLIST_ITEM, this));
-				} 
-			} else {
-				lastItem = null;
-				index = -1;
+				} else {
+					lastItem = null;
+					index = -1;
+				}
 			}
 		}
 		

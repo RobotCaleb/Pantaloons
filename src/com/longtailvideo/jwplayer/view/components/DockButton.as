@@ -60,6 +60,7 @@ package com.longtailvideo.jwplayer.view.components {
 			super.init();
 			_imageLayer.addChild(_text);
 			if (_assetColor) {
+				_outIcon.transform.colorTransform = createColorTransform(_assetColor);
 				_text.textColor = _assetColor.color;
 			} else {
 				_text.textColor = 0xFFFFFF;
@@ -90,6 +91,8 @@ package com.longtailvideo.jwplayer.view.components {
 			_overBackground.graphics.beginFill(_overColor ? _overColor.color : 0x000000, 0.55);
 			_overBackground.graphics.drawRect(0, 0, 50, 50);
 			_overBackground.graphics.endFill();
+			
+			updateClickLayer();
 		}
 		
 		

@@ -8,7 +8,6 @@ package com.longtailvideo.jwplayer.media {
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
 	import com.longtailvideo.jwplayer.player.PlayerState;
 	import com.longtailvideo.jwplayer.utils.Draw;
-	import com.longtailvideo.jwplayer.utils.Logger;
 	
 	import flash.display.*;
 	import flash.events.*;
@@ -48,6 +47,16 @@ package com.longtailvideo.jwplayer.media {
 			sendBufferEvent(0);
 		}
 
+		public override function getRawMedia():DisplayObject
+		{
+			return _loader;
+			
+		}
+		
+		public override function getTime():Number
+		{
+				return -1;
+		}
 
 		/** Catch errors. **/
 		private function errorHandler(evt:ErrorEvent):void {
@@ -59,12 +68,8 @@ package com.longtailvideo.jwplayer.media {
 		/** Load and place the image on stage. **/
 		private function loaderHandler(evt:Event):void {
 			media = _loader;
+			Draw.smooth(_loader.content as Bitmap);
 			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_LOADED);
-			try {
-				Draw.smooth(_loader.content as Bitmap);
-			} catch (e:Error) {
-				Logger.log("Could not smooth image file: " + e.message);
-			}
 			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_META, {metadata: {height: evt.target.height, width: evt.target.width}});
 			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_BUFFER_FULL);
 		}
@@ -79,15 +84,13 @@ package com.longtailvideo.jwplayer.media {
 
 		/** Resume playback of the_item. **/
 		override public function play():void {
-			_postitionInterval = setInterval(positionInterval, 100);
 			super.play();
+			_postitionInterval = setInterval(positionInterval, 100);
 		}
 
 
 		/** Interval function that pings the _position. **/
 		protected function positionInterval():void {
-			if (state != PlayerState.PLAYING) { return; }
-
 			_position = Math.round(position * 10 + 1) / 10;
 			if (position < _item.duration) {
 				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_TIME, {position: position, duration: item.duration});
@@ -121,17 +124,6 @@ package com.longtailvideo.jwplayer.media {
 			}
 			clearInterval(_postitionInterval);
 			super.stop();
-		}
-
-		public override function getRawMedia():DisplayObject
-		{
-			return _loader;
-			
-		}
-		
-		public override function getTime():Number
-		{
-			return -1;
 		}
 	}
 }

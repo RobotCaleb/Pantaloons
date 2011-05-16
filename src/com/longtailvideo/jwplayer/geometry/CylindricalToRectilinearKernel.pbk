@@ -22,11 +22,10 @@ kernel CylindricalToRectilinear
         maxValue : float2(8000.0,8000.0);
         defaultValue: float2(2000.0, 1000.0); 
     >;
-	
-	//These are actually divided by zero in the host program
+
     parameter float2 outputDimensions
     <
-        minValue : float2(0.0, 0.0);
+        minValue : float2(1.0, 1.0);
         maxValue : float2(8000.0, 8000.0);
         defaultValue : float2(512.0,512.0);
     >;
@@ -56,7 +55,7 @@ kernel CylindricalToRectilinear
     void evaluatePixel()
     {
         // Normalized output coordinate (between 0 and 1)
-		float2 outputPoint = outCoord() * outputDimensions;
+		float2 outputPoint = outCoord() / outputDimensions;
         float2 planePoint = outputPoint * viewBounds.zw + viewBounds.xy;
 		float2 angle, cyl;
 
@@ -74,7 +73,7 @@ kernel CylindricalToRectilinear
 		cyl = float2(angle.x, tan(angle.y));
 		
 		// Angle to cylindrical
-        float2 inputPoint = (cyl - cylindricalBounds.xy) * cylindricalBounds.zw;
+        float2 inputPoint = (cyl - cylindricalBounds.xy) / cylindricalBounds.zw;
         inputPoint.x = mod(inputPoint.x, 1.0);  // wraparound
         
         // Denormalize coordinate

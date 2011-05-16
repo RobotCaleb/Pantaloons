@@ -2,6 +2,7 @@ package com.longtailvideo.jwplayer.view {
 
 	import com.longtailvideo.jwplayer.events.GlobalEventDispatcher;
 	import com.longtailvideo.jwplayer.events.ViewEvent;
+	import com.longtailvideo.jwplayer.model.PlayerConfig;
 	import com.longtailvideo.jwplayer.player.IPlayer;
 	import com.longtailvideo.jwplayer.utils.Configger;
 	import com.longtailvideo.jwplayer.utils.Logger;
@@ -52,8 +53,6 @@ package com.longtailvideo.jwplayer.view {
 
 		/** Initialize the rightclick menu. **/
 		public function initializeMenu():void {
-			setAboutText();
-			addItem(about, aboutHandler);
 			try {
 				fullscreen = new ContextMenuItem('Toggle Fullscreen...');
 				addItem(fullscreen, fullscreenHandler);
@@ -61,26 +60,28 @@ package com.longtailvideo.jwplayer.view {
 			}
 			stretching = new ContextMenuItem('Stretching is ' + _player.config.stretching + '...');
 			addItem(stretching, stretchHandler);
-			if (Capabilities.isDebugger == true || _player.config.debug != Logger.NONE) {
+			setAboutText();
+			addItem(about, aboutHandler);
+			if (Capabilities.isDebugger == true) {
 				debug = new ContextMenuItem('Logging to ' + _player.config.debug + '...');
 				addItem(debug, debugHandler);
 			}
 		}
 		
 		protected function setAboutText():void {
-			about = new ContextMenuItem('About JW Player ' + _player.version + '...');
+			about = new ContextMenuItem('About VideoWarp Flash Player ' + _player.version + '...');
 		}
 
 		/** jump to the about page. **/
 		protected function aboutHandler(evt:ContextMenuEvent):void {
-			navigateToURL(new URLRequest('http://www.longtailvideo.com/players/jw-flv-player'), '_blank');
+			navigateToURL(new URLRequest('http://www.eyesee360.com'), '_blank');
 		}
 
 		/** change the debug system. **/
 		protected function debugHandler(evt:ContextMenuEvent):void {
 			var arr:Array = new Array(Logger.NONE, Logger.ARTHROPOD, Logger.CONSOLE, Logger.TRACE);
 			var idx:Number = arr.indexOf(_player.config.debug);
-			idx = (idx == arr.length - 1) ? 0 : idx + 1;
+			idx == arr.length - 1 ? idx = 0 : idx++;
 			debug.caption = 'Logging to ' + arr[idx] + '...';
 			setCookie('debug', arr[idx]);
 			_player.config.debug = arr[idx];
@@ -88,7 +89,7 @@ package com.longtailvideo.jwplayer.view {
 
 		/** Toggle the fullscreen mode. **/
 		protected function fullscreenHandler(evt:ContextMenuEvent):void {
-			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_FULLSCREEN, !_player.config.fullscreen));
+			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_FULLSCREEN, !_player.fullscreen));
 		}
 
 		/** Change the stretchmode. **/

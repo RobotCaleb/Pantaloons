@@ -15,11 +15,7 @@ package com.longtailvideo.jwplayer.model {
 		}
 		
 		public function toString():String {
-			var colorString:String = ((_color == 0) ? "000000" : _color.toString(16));
-			while (colorString.length < 6) {
-				colorString = "0" + colorString;
-			}
-			return "0x" + colorString;
+			return "0x" + ((_color == 0) ? "000000" : _color.toString(16));
 		}
 		
 		public function get color():uint {

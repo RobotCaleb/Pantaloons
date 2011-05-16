@@ -4,7 +4,6 @@ package com.longtailvideo.jwplayer.utils {
 	import flash.events.ErrorEvent;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
-	import flash.events.HTTPStatusEvent;
 	import flash.events.IOErrorEvent;
 	import flash.events.SecurityErrorEvent;
 	import flash.net.URLLoader;
@@ -33,17 +32,14 @@ package com.longtailvideo.jwplayer.utils {
 		private var _loaderExtensions:Array = ["swf", "png", "gif", "jpg", "jpeg"];
 		private var _loader:Loader;
 		private var _urlLoader:URLLoader;
-		private var _errorState:Boolean;
 		private var LoadedClass:Class;
 		public var loadedObject:*;
 
 
 		public function load(location:String, expectedClass:Class=null):void {
-			_errorState = false;
-			
 			LoadedClass = expectedClass;
 
-			var ext:String = Strings.extension(location);
+			var ext:String = location.substring(location.lastIndexOf(".") + 1, location.length);
 
 			if (_loaderExtensions.indexOf(ext.toLowerCase()) >= 0) {
 				useLoader(location);
@@ -82,32 +78,8 @@ package com.longtailvideo.jwplayer.utils {
 		}
 
 
-		protected function loadStatus(evt:HTTPStatusEvent):void {
-			switch (evt.status) {
-				case 400:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 400; Bad request."));
-					break;
-				case 401:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 401; Unauthorized."));
-					break;
-				case 403:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 403; Forbidden."));
-					break;
-				case 404:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 404; Not Found."));
-					break;
-				case 500:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 500; Internal Server Error."));
-					break;
-				case 503:
-					loadError(new ErrorEvent(ErrorEvent.ERROR, false, false, "HTTP Status 503; Service Unavailable."));
-					break;
-			}
-		}
-
 		protected function loadError(evt:ErrorEvent):void {
 			dispatchEvent(new ErrorEvent(ErrorEvent.ERROR, false, false, evt.text));
-			_errorState = true;
 		}
 
 
@@ -146,18 +118,9 @@ package com.longtailvideo.jwplayer.utils {
 				_urlLoader = new URLLoader();
 				_urlLoader.addEventListener(Event.COMPLETE, urlLoadComplete);
 				_urlLoader.addEventListener(IOErrorEvent.IO_ERROR, loadError);
-				_urlLoader.addEventListener(HTTPStatusEvent.HTTP_STATUS, loadStatus);
 				_urlLoader.addEventListener(SecurityErrorEvent.SECURITY_ERROR, loadError);
 			}
 			return _urlLoader;
-		}
-		
-		public override function dispatchEvent(event:Event):Boolean {
-			if (!_errorState) {
-				return super.dispatchEvent(event);
-			} else {
-				return false;
-			}
 		}
 	}
 }

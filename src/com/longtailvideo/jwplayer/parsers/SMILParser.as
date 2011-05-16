@@ -50,11 +50,11 @@ package com.longtailvideo.jwplayer.parsers {
 			for each (var i:XML in obj.children()) {
 				switch (i.localName().toLowerCase()) {
 					case 'anchor':
-						itm['link'] = Strings.xmlAttribute(i, 'href');
+						itm['link'] = i.@href.toString();
 						break;
 					case 'img':
 						if (itm['file']) {
-							itm['image'] = Strings.xmlAttribute(i, 'src');
+							itm['image'] = i.@src.toString();
 							break;
 						} else {
 							itm = parseAttributes(i, itm);
@@ -73,21 +73,21 @@ package com.longtailvideo.jwplayer.parsers {
 		}
 
 		/** Get attributes from a SMIL element. **/
-		public function parseAttributes(obj:XML, itm:Object):Object {
+		public function parseAttributes(obj:Object, itm:Object):Object {
 			for (var i:Number = 0; i < obj.attributes().length(); i++) {
 				var att:String = obj.attributes()[i].name().toString();
 				switch (att) {
 					case 'begin':
-						itm['start'] = Strings.seconds(Strings.xmlAttribute(obj, 'begin'));
+						itm['start'] = Strings.seconds(obj.@begin.toString());
 						break;
 					case 'src':
-						itm['file'] = Strings.xmlAttribute(obj, 'src');
+						itm['file'] = obj.@src.toString();
 						break;
 					case 'dur':
-						itm['duration'] = Strings.seconds(Strings.xmlAttribute(obj, 'dur'));
+						itm['duration'] = Strings.seconds(obj.@dur.toString());
 						break;
 					case 'alt':
-						itm['description'] = Strings.xmlAttribute(obj, 'alt');
+						itm['description'] = obj.@alt.toString();
 						break;
 					default:
 						itm[att] = obj.attributes()[i].toString();
