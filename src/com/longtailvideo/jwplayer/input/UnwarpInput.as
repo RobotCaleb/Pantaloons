@@ -29,7 +29,7 @@ package com.longtailvideo.jwplayer.input
 		
 		public function addHandlers(display:IDisplayComponent, stage:Stage):void
 		{
-			_mouseController.addHandlers(display, stage);
+			_mouseController.addHandlers(display);
 			_keyboardController.addHandlers(stage);
 		}
 		

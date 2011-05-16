@@ -19,9 +19,10 @@ kernel EquirectangularToPerspectiveVertical
         defaultValue: float2(2000.0, 1000.0); 
     >;
 
+	//These are actually diveded by zero in the host program
     parameter float2 outputDimensions
     <
-        minValue : float2(1.0, 1.0);
+        minValue : float2(0.0, 0.0);
         maxValue : float2(8000.0, 8000.0);
         defaultValue : float2(512.0,512.0);
     >;

@@ -71,7 +71,6 @@ package com.longtailvideo.jwplayer.controller {
 			tasker.addEventListener(Event.COMPLETE, setupTasksComplete);
 			tasker.addEventListener(ErrorEvent.ERROR, setupTasksFailed);
 			
-			tasker.queueTask(insertDelay);
 			tasker.queueTask(loadConfig, loadConfigComplete);
 			tasker.queueTask(loadSkin, loadSkinComplete);
 			tasker.queueTask(setupMediaProviders);
@@ -103,12 +102,6 @@ package com.longtailvideo.jwplayer.controller {
 		// Tasks
 		///////////////////////
 		
-		protected function insertDelay():void {
-			var timer:Timer = new Timer(100, 1);
-			timer.addEventListener(TimerEvent.TIMER_COMPLETE, tasker.success);
-			timer.start();
-		}
-
 		protected function loadConfig():void {
 			var configger:Configger = new Configger();
 			configger.addEventListener(Event.COMPLETE, tasker.success);
@@ -142,7 +135,10 @@ package com.longtailvideo.jwplayer.controller {
 				// If this step fails, load the default skin instead
 				skin.addEventListener(ErrorEvent.ERROR, loadSkin);
 			} else {
-				if (evt) Logger.log("Error loading skin: " + evt.text); 
+				if (evt) { 
+					Logger.log("Error loading skin: " + evt.text);
+					(evt.target as EventDispatcher).removeEventListener(ErrorEvent.ERROR, loadSkin);
+				}
 				skin = new DefaultSkin();
 				skin.addEventListener(ErrorEvent.ERROR, tasker.failure);
 			}

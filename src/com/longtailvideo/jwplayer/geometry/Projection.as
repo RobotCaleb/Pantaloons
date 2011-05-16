@@ -46,34 +46,123 @@ package com.longtailvideo.jwplayer.geometry
 			processRawData(rawData);
 		}
 		
-		public function guess(type:String, width:Number, height:Number):void
+		public function guess(projection:Object, width:Number, height:Number):void
 		{	
 			trace('Guessing - Height: ', height, 'Width: ', width)
 			
-			_type = type;
+			_type = projection.projection;
+			
 			
 			if (_type == Projection.EQUIRECTANGULAR){
 				var dpp:Number = 360.0 / width;
 				var tiltRange:Number = height * dpp;
 				if (tiltRange > 180.0) {
 					tiltRange = 180.0
-				}
+				}	
+
+					if (projection.tiltMin){
+						_tiltMin = projection.tiltMin;
+					} else {
+						if (projection.tiltMax) {
+							_tiltMin = projection.tiltMax-(tiltRange);
+						} else {
+							_tiltMin = -tiltRange/2.0;
+						}
+					}
+					if (_tiltMin < -90 || _tiltMin > 90){
+						_tiltMin = -90;
+					}
 					
-				trace('DPP: ', dpp)
-				_tiltMin = -tiltRange/2.0;
-				_tiltMax = tiltRange/2.0;
-				_panMin = 0.0;
-				_panMax = 360.0;
-				trace("PanMin: ", _panMin, "PanMax: ", _panMax, "TiltMin: ", _tiltMin, "TiltMax: ", _tiltMax);
-				
+					if (projection.tiltMax){
+						_tiltMax = projection.tiltMax;
+					} else {
+						if (projection.tiltMin){
+							_tiltMax = projection.tiltMin+tiltRange;
+						} else {
+							_tiltMax = tiltRange/2.0
+						}
+						 
+					}
+					if (_tiltMax < -90 || _tiltMax > 90){
+						_tiltMax = 90;
+					}
+					if (projection.panMin){
+						_panMin = projection.panMin;
+					} else {
+						if (projection.panMax){
+							_panMin = projection.panMax-tiltRange;
+						} else {
+							_panMin = -tiltLim;
+						}
+					}
+					if (_panMin <-180.0 || _panMin > 180.0) {
+						_panMin = -180;
+					}
+					if (projection.panMax){
+						_panMax = projection.panMax;
+					} else {
+						if (projection.panMin){
+							_panMax = projection.panMin+tiltRange;	
+						} else {
+							_panMax = tiltLim*2;
+						}
+					} 
+					if (_panMax < -180 || _panMax > 180){
+						_panMax = 180;
+					} 
 			} else if (_type == Projection.CYLINDRICAL) {
 				// guess cylindrical, centered on horizon
 				var radius:Number = width / (2 * Math.PI);
 				var tiltLim:Number = R2D * Math.atan2(height / 2, radius);
-				_tiltMin = -tiltLim;
-				_tiltMax = tiltLim;
-				_panMin = -180.0;
-				_panMax = 180.0;
+				if (projection.tiltMin){
+					_tiltMin = projection.tiltMin;
+				} else {
+					if (projection.tiltMax) {
+						_tiltMin = projection.tiltMax-tiltLim*2;
+					} else {
+						_tiltMin = -tiltLim;
+					}
+				}
+				if (_tiltMin < -90 || _tiltMin > 90){
+					_tiltMin = -90;
+				}
+				
+				if (projection.tiltMax){
+					_tiltMax = projection.tiltMax;
+				} else {
+					if (projection.tiltMin){
+						_tiltMax = projection.tiltMin+tiltLim*2;
+					} else {
+						_tiltMax = tiltLim;
+					}
+				}
+				if (_tiltMax < -90 || _tiltMax > 90){
+					_tiltMax = 90;
+				}
+				if (projection.panMin){
+					_panMin = projection.panMin;
+				} else {
+					if (projection.panMax){
+						_panMin = projection.panMax-tiltLim*2;
+					} else {
+						_panMin = -tiltLim;
+					}
+				}
+				if (_panMin <-180.0 || _panMin > 180.0) {
+					_panMin = -180;
+				}
+				if (projection.panMax){
+					_panMax = projection.panMax;
+				} else {
+					if (projection.panMin){
+						_panMax = projection.panMin+tiltLim*2;	
+					} else {
+						_panMax = tiltLim*2;
+					}
+				} 
+				if (_panMax < -180 || _panMax > 180){
+					_panMax = 180;
+				} 
 			}
 		}
 		

@@ -21,7 +21,7 @@ package com.longtailvideo.jwplayer.utils {
 			var bools:Array = ["true", "false", "t", "f"];
 			if (bools.indexOf(value.toLowerCase().replace(" ","")) >= 0) {
 				return "Boolean";
-			} else if ( value.search(/^(#|0x)\d{3,6}/) >= 0 ) {
+			} else if ( value.search(/^(#|0x)[0-9a-fA-F]{3,6}/) >= 0 ) {
 				return "Color";
 			} else if (!isNaN(Number(value)) ) {
 				return "Number";
@@ -36,7 +36,9 @@ package com.longtailvideo.jwplayer.utils {
 
 			switch(type.toLowerCase()) {
 				case "color":
-					return new Color(stringToColor(value));
+					if (value.length > 0) {
+						return new Color(stringToColor(value));
+					} else return null;
 				case "number":
 					return Number(value);
 				case "boolean":

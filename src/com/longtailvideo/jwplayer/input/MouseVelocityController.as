@@ -6,7 +6,6 @@ import com.longtailvideo.jwplayer.geometry.Projector;
 import com.longtailvideo.jwplayer.view.interfaces.IDisplayComponent;
 
 import flash.display.DisplayObject;
-import flash.display.Stage;
 import flash.events.Event;
 import flash.events.MouseEvent;
 import flash.geom.Point;
@@ -21,7 +20,6 @@ public class MouseVelocityController
 	private var _downPoint:Point;
 	private var _panScale:Point;
 	private var _viewScale:Point;
-	private var _stage:Stage;
 	
 	public function MouseVelocityController(projector:Projector)
 	{
@@ -50,13 +48,12 @@ public class MouseVelocityController
 		
 	}
 	
-	public function addHandlers(media:IDisplayComponent, stage:Stage):void
+	public function addHandlers(media:IDisplayComponent):void
 	{
-		
-		_stage = stage;
 		_media = media;
 		
 		_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
+		_media.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 		_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);
 		
 		_projector.addEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
@@ -68,12 +65,12 @@ public class MouseVelocityController
 		_projector.tiltVelocity = 0.0;
 		_projector.panVelocity = 0.0;
 			
-		_stage.addEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
+		_media.addEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
 			
 		_viewScale = new Point(_projector.horizontalFOV, 
 							   _projector.verticalFOV);
-		_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
-		_stage.addEventListener(Event.MOUSE_LEAVE, mouseLeave); // Stop the rotation when mouse is out of the movie clip
+		
+		_media.addEventListener(MouseEvent.MOUSE_OUT, mouseOut); // Stop the rotation when mouse is out of the movie clip
 	}
 	
 
@@ -83,29 +80,27 @@ public class MouseVelocityController
 			_projector.tiltVelocity = 0;
 			_projector.panVelocity = 0;
 			_downPoint = null;
-			_stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
-			_stage.removeEventListener(Event.MOUSE_LEAVE, mouseLeave);
+			_media.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
+			_media.removeEventListener(MouseEvent.MOUSE_OUT, mouseOut);
 		}
 		
-	private function mouseLeave(e:Event):void
-	{
+		private function mouseOut(e:MouseEvent):void
+		{
 			_projector.tiltVelocity = 0;
 			_projector.panVelocity = 0;
 			_downPoint = null;	
 			_media.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
 
-	}
+		}
 		
 		private function mouseDrag(e:MouseEvent):void
 		{
-			if (e.localX <= 1.0 && e.localY <= 1.0) {
-				var currentPos:Point = new Point(e.localX, e.localY);
-				var deltaPos:Point = _downPoint.subtract(currentPos);
-	
-				_viewScale = new Point(_projector.horizontalFOV, _projector.verticalFOV);
-				_projector.panVelocity = (deltaPos.x * _panScale.x * _viewScale.x)
-				_projector.tiltVelocity = (deltaPos.y * _panScale.y * _viewScale.y)
-			}
+			var currentPos:Point = new Point(e.localX, e.localY);
+			var deltaPos:Point = _downPoint.subtract(currentPos);
+
+			_viewScale = new Point(_projector.horizontalFOV, _projector.verticalFOV);
+			_projector.panVelocity = (deltaPos.x * _panScale.x * _viewScale.x)
+			_projector.tiltVelocity = (deltaPos.y * _panScale.y * _viewScale.y)
 
 			
 		}
@@ -124,7 +119,7 @@ public class MouseVelocityController
 			_downPoint = null;
 			
 			_media.removeEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
-			_stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
+			_media.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
 			_media.removeEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);
 			
 			_projector.removeEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
@@ -134,7 +129,7 @@ public class MouseVelocityController
 		public function resume():void
 		{
 			_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
-			_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
+			_media.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 			_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);	
 		}
 		

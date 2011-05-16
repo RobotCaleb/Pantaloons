@@ -18,7 +18,7 @@ package com.longtailvideo.jwplayer.geometry
 	import flash.geom.Rectangle;
 	import flash.media.Video;
 	import flash.utils.getTimer;
-
+	
 	import org.osmf.layout.AbsoluteLayoutFacet;
 
 	public class Projector extends EventDispatcher
@@ -385,14 +385,18 @@ package com.longtailvideo.jwplayer.geometry
 			_shader = new Shader( new CylindricalToRectilinearKernel() );
 			var input:BitmapData = _sourceBitmap;
 			var bounds:Array = _sourceProjection.bounds;
+			_shader.data.src.input = input;
+			_shader.data.inputDimensions.value = [input.width,input.height];
+			/* we do this, because the equirectangular shader has a bug in it */
+
 			
 			// map angle to Y axis for bounds
 			bounds[3] = Math.tan(bounds[1] + bounds[3]) - Math.tan(bounds[1]);
 			bounds[1] = Math.tan(bounds[1]);
-			
+			var newBounds:Array = [bounds[0], -1*(bounds[3]+bounds[1]), 1.0/bounds[2], 1.0/bounds[3]];
 			_shader.data.src.input = input;
 			_shader.data.inputDimensions.value = [input.width,input.height];
-			_shader.data.cylindricalBounds.value = bounds;
+			_shader.data.cylindricalBounds.value = newBounds;
 		}
 		
 		private function initShaderEquiangularToRectilinear():void
@@ -472,7 +476,12 @@ package com.longtailvideo.jwplayer.geometry
 			_sourceBitmap = new BitmapData(w, h, false);
 			/* just for now I'm going to leave the transform matrix out */
 			/*_sourceBitmap.draw(_drawable, _transformMatrix, null, null, _clipRect, true);*/
-			_sourceBitmap.draw(_drawable, _transformMatrix, null, null, _clipRect, false);
+			try {
+				_sourceBitmap.draw(_drawable, _transformMatrix, null, null, _clipRect, false);
+			} catch (e:Error) {
+				trace(e);
+			}
+			
 		
 		}
 		

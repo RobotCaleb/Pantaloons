@@ -40,14 +40,10 @@ package com.longtailvideo.jwplayer.media {
 			super('youtube');
 		}
 
-		public override function getRawMedia():DisplayObject
-		{
-			return _loader;
-			
-		}
-		
+
 		public override function initializeMediaProvider(cfg:PlayerConfig):void {
 			super.initializeMediaProvider(cfg);
+			stretch = false;
 			Security.allowDomain('*');
 			_outgoing = new LocalConnection();
 			_outgoing.allowDomain('*');
@@ -68,15 +64,15 @@ package com.longtailvideo.jwplayer.media {
 			error(evt.text);
 		}
 
-		public override function getTime():Number
-		{	
-				return -1;	
-		}
-		
-		
-		/** xtract the current ID from a youtube URL **/
-		private function getID(url:String):String {
-			var arr:Array = url.split('?');
+
+		/** Extract the current ID from a youtube URL.  Supported values include:
+		 * http://www.youtube.com/watch?v=ylLzyHk54Z0
+		 * http://www.youtube.com/watch#!v=ylLzyHk54Z0
+		 * http://www.youtube.com/v/ylLzyHk54Z0
+		 * ylLzyHk54Z0
+		 **/
+		public static function getID(url:String):String {
+			var arr:Array = url.split(/\?|\#\!/);
 			var str:String = '';
 			for (var i:String in arr) {
 				if (arr[i].substr(0, 2) == 'v=') {
@@ -84,7 +80,11 @@ package com.longtailvideo.jwplayer.media {
 				}
 			}
 			if (str == '') {
-				str = url.substr(url.indexOf('/v/') + 3);
+				if (url.indexOf('/v/') >= 0) {
+					str = url.substr(url.indexOf('/v/') + 3);
+				} else {
+					str = url;
+				}
 			}
 			if (str.indexOf('&') > -1) {
 				str = str.substr(0, str.indexOf('&'));
@@ -97,7 +97,7 @@ package com.longtailvideo.jwplayer.media {
 		private function getLocation():String {
 			var loc:String;
 			var url:String = RootReference.stage.loaderInfo.url;
-			if (url.indexOf('http://') == 0) {
+			if (url.indexOf('http') == 0) {
 				_unique = Math.random().toString().substr(2);
 				loc = url.substr(0, url.indexOf('.swf'));
 				loc = loc.substr(0, loc.lastIndexOf('/') + 1) + 'yt.swf?unique=' + _unique;
@@ -115,7 +115,6 @@ package com.longtailvideo.jwplayer.media {
 			_position = _offset = 0;
 			_loading = true;
 			setState(PlayerState.BUFFERING);
-			sendBufferEvent(0);
 			if (_connected) {
 				completeLoad(itm);
 			} else {
@@ -139,18 +138,21 @@ package com.longtailvideo.jwplayer.media {
 			if (_outgoing) {
 				var gid:String = getID(_item.file);
 				_outgoing.send('AS3_' + _unique, "cueVideoById", gid, _item.start);
-				resize(config.width, config.width / 4 * 3);
+				/*resize(config.width, config.width / 4 * 3);*/
 				media = _loader;
 				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_LOADED);
-				config.mute == true ? setVolume(0) : setVolume(config.volume);
+				sendBufferEvent(0);
 				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_BUFFER_FULL);
+				_outgoing.send('AS3_' + _unique, "setVolume", (config.mute ? 0 : config.volume));
 			}
 		}
 
 
 		/** Pause the YouTube movie. **/
 		override public function pause():void {
-			_outgoing.send('AS3_' + _unique, "pauseVideo");
+			if (state == PlayerState.PLAYING || state == PlayerState.BUFFERING) {
+				_outgoing.send('AS3_' + _unique, "pauseVideo");
+			}
 			super.pause();
 		}
 
@@ -181,9 +183,6 @@ package com.longtailvideo.jwplayer.media {
 		/** Catch youtube state changes. **/
 		public function onStateChange(stt:Number):void {
 			switch (Number(stt)) {
-				case -1:
-					// setState(PlayerState.IDLE);
-					break;
 				case 0:
 					if (state != PlayerState.BUFFERING && state != PlayerState.IDLE) {
 						complete();
@@ -207,30 +206,36 @@ package com.longtailvideo.jwplayer.media {
 		public function onLoadChange(ldd:Number, ttl:Number, off:Number):void {
 			_bufferPercent = Math.round(ldd / ttl * 100);
 			_offset = off / ttl * item.duration;
-			sendBufferEvent(_bufferPercent, _offset);
+			sendBufferEvent(_bufferPercent, _offset, {loaded:ldd, total:ttl});
 		}
 
 
 		/** Catch Youtube _position changes **/
 		public function onTimeChange(pos:Number, dur:Number):void {
-			if (item.duration < 0) {
-				item.duration = dur;
+			if (state == PlayerState.PLAYING) {
+			
+				_position = pos;
+				if (item.duration < 0) {
+					item.duration = dur;
+				}
+				sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_TIME, {position: pos, duration: item.duration, offset: _offset});
+				if (pos > item.duration) {
+					complete();
+				}
 			}
-			if (state != PlayerState.PLAYING){
-				super.play();
-			}
-			sendMediaEvent(MediaEvent.JWPLAYER_MEDIA_TIME, {position: pos, duration: item.duration, bufferPercent:_bufferPercent, offset: _offset});
 		}
-
+		
 
 		/** Resize the YT player. **/
 		public override function resize(wid:Number, hei:Number):void {
 			_outgoing.send('AS3_' + _unique, "setSize", wid, hei);
+			super.resize(wid, hei);
 		}
 
 
 		/** Seek to _position. **/
 		override public function seek(pos:Number):void {
+			super.seek(pos);
 			_outgoing.send('AS3_' + _unique, "seekTo", pos);
 			play();
 		}
@@ -253,5 +258,17 @@ package com.longtailvideo.jwplayer.media {
 			_outgoing.send('AS3_' + _unique, "setVolume", pct);
 			super.setVolume(pct);
 		}
+		
+		public override function getRawMedia():DisplayObject
+		{
+			return _loader;
+			
+		}
+		
+		public override function getTime():Number
+		{	
+			return -1;	
+		}
+		
 	}
 }

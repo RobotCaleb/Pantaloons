@@ -30,7 +30,10 @@ package com.longtailvideo.jwplayer.parsers {
 				'rbs':'sound',
 				'sdp':'video',
 				'swf':'image',
-				'vp6':'video'
+				'vp6':'video',
+				'webm':'video',
+				'ogg':'video',
+				'ogv':'video'
 			};
 			
 		/**
@@ -50,26 +53,29 @@ package com.longtailvideo.jwplayer.parsers {
 				if (i.namespace().prefix == JWParser.PREFIX) {
 					itm[i.localName()] = Strings.serialize(i.text().toString());
 				}
+				if(!itm['file'] && String(itm['link']).toLowerCase().indexOf('youtube') > -1) {
+					itm['file'] = itm['link'];
+				}
 			}
-			updateProvider(itm);
 			return itm;
 		}
 		
-		public static function updateProvider(item:Object):void {
-			if (!item['provider'] && item['file']) {
-				if (item['type']) {
-					item['provider'] = item['type'];
-				} else if (item['file'].indexOf('youtube.com/w') > -1) {
-					item['provider'] = "youtube";
-				} else if (item['streamer'] && item['streamer'].indexOf('rtmp') == 0) {
-					item['provider'] = "rtmp";
-				} else {
-					var ext:String = Strings.extension(item['file']);
-					if (extensions.hasOwnProperty(ext)) {
-						item['provider'] = extensions[ext];
-					}
+		public static function getProvider(item:Object):String {
+			if (item['type']) {
+				return item['type'];
+			} else if (item['file'].indexOf('youtube.com/w') > -1 || item['file'].indexOf('youtube.com/v') > -1) {
+				return "youtube";
+			} else if (item['streamer'] && item['streamer'].indexOf('rtmp') == 0) {
+				return "rtmp";
+			} else if (item['streamer'] && item['streamer'].indexOf('http') == 0) {
+				return "http";
+			} else {
+				var ext:String = Strings.extension(item['file']);
+				if (extensions.hasOwnProperty(ext)) {
+					return extensions[ext];
 				}
 			}
+			return "";
 		}
 
 	}

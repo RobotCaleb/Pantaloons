@@ -8,10 +8,10 @@ package com.longtailvideo.jwplayer.model {
 	import com.longtailvideo.jwplayer.media.MediaProvider;
 	import com.longtailvideo.jwplayer.media.RTMPMediaProvider;
 	import com.longtailvideo.jwplayer.media.SoundMediaProvider;
-	import com.longtailvideo.jwplayer.media.UnwarpMediaProxy;
 	import com.longtailvideo.jwplayer.media.VideoMediaProvider;
 	import com.longtailvideo.jwplayer.media.YouTubeMediaProvider;
 	import com.longtailvideo.jwplayer.player.PlayerState;
+	import com.longtailvideo.jwplayer.media.UnwarpMediaProxy;
 	
 	import flash.events.Event;
 
@@ -141,7 +141,6 @@ package com.longtailvideo.jwplayer.model {
 		}
 
 		public function setupMediaProviders():void {
-			setMediaProvider('default', new MediaProvider('default'));
 			setMediaProvider('video', new UnwarpMediaProxy(new VideoMediaProvider()));
 			setMediaProvider('http', new UnwarpMediaProxy(new HTTPMediaProvider()));
 			setMediaProvider('rtmp', new UnwarpMediaProxy(new RTMPMediaProvider()));
@@ -176,7 +175,7 @@ package com.longtailvideo.jwplayer.model {
 			var newMedia:MediaProvider = _mediaSources[url2type(type)] as MediaProvider;
 
 			if (_currentMedia != newMedia) {
-				if (_currentMedia) {
+				if (_currentMedia != null) {
 					_currentMedia.stop();
 					_currentMedia.removeGlobalListener(forwardEvents);
 				}
@@ -193,9 +192,8 @@ package com.longtailvideo.jwplayer.model {
 				if (evt.type == MediaEvent.JWPLAYER_MEDIA_ERROR) {
 					// Translate media error into player error.
 					dispatchEvent(new PlayerEvent(PlayerEvent.JWPLAYER_ERROR, (evt as MediaEvent).message));
-				} else {
-					dispatchEvent(evt);
-				}
+				} 
+				dispatchEvent(evt);
 			}
 		}
 

@@ -3,10 +3,12 @@ package com.longtailvideo.jwplayer.view.components {
 	import com.longtailvideo.jwplayer.player.IPlayer;
 	import com.longtailvideo.jwplayer.player.PlayerState;
 	import com.longtailvideo.jwplayer.utils.Animations;
+	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.RootReference;
 	import com.longtailvideo.jwplayer.view.interfaces.IDockComponent;
 	import com.longtailvideo.jwplayer.view.skins.SWFSkin;
 	
+	import flash.accessibility.AccessibilityProperties;
 	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
@@ -16,17 +18,20 @@ package com.longtailvideo.jwplayer.view.components {
 	
 	
 	public class DockComponent extends CoreComponent implements IDockComponent {
+
+
 		/** Default configuration vars for this plugin. **/
-		public var defaults:Object = {
-				align: 'right'
-			};
+		public var defaults:Object = { align: 'right' };
 		/** Object with all the buttons in the dock. **/
-		private var buttons:Array;
+		private var buttons:Object;
 		/** Timeout for hiding the buttons when the video plays. **/
 		private var timeout:Number;
 		/** Reference to the animations handler **/
 		private var animations:Animations;
-		
+		/** Tab index for accessibility options **/
+		private var currentTab:Number = 400;
+
+
 		public function DockComponent(player:IPlayer) {
 			super(player, "dock");
 			animations = new Animations(this);
@@ -42,16 +47,22 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		public function addButton(icon:DisplayObject, text:String, clickHandler:Function, name:String = null):MovieClip {
 			var button:DockButton = new DockButton();
-			if (name){
+			if (name) {
 				button.name = name;
 			}
 			if (_player.skin is SWFSkin) {
 				button.colorize = true;
 			}
+			var acs:AccessibilityProperties = new AccessibilityProperties();
+			acs.name = (name ? name : icon.name) + "Button";
+			button.accessibilityProperties = acs;
+			button.tabEnabled = true;
+			button.tabChildren = false;
+			button.tabIndex = currentTab++;
 			button.setOutIcon(icon);
 			button.outBackground = getSkinElement("button") as Sprite;
 			button.overBackground = getSkinElement("buttonOver") as Sprite;
-			button.assetColor = player.config.backcolor;
+			button.assetColor = fontColor ? fontColor : player.config.backcolor;
 			button.outColor = player.config.frontcolor;
 			button.overColor = player.config.lightcolor;
 			button.clickFunction = clickHandler;
@@ -65,10 +76,13 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		
 		public function removeButton(name:String):void {
-			try {
-				removeChild(getChildByName(name));
-			} catch (err:Error) {
-			}
+            for(var i:Number=0; i < buttons.length; i++) { 
+                if(buttons[i].name == name) {
+                    buttons.splice(i,1);
+                    removeChild(getChildAt(i));
+                    break;
+                }
+            }
 		}
 		
 		
@@ -91,7 +105,9 @@ package com.longtailvideo.jwplayer.view.components {
 					buttons[i].y = usedHeight % height;
 					buttons[i].x = xStart + (buttons[i].width + margin) * row * direction;
 					usedHeight += buttons[i].height + margin;
-					(buttons[i] as DockButton).centerText();
+					if(buttons[i] is DockButton) {
+					    (buttons[i] as DockButton).centerText();
+					}
 				}
 			}
 		}
@@ -113,8 +129,43 @@ package com.longtailvideo.jwplayer.view.components {
 		private function moveTimeout():void {
 			animations.fade(0);
 		}
-		
-		
+
+
+        /** Button handler for JS API. **/
+        public function setButton(name:String, click:String=null, out:String=null, over:String=null):void { 
+            // check if the button already exists
+            var index:Number = -1;
+            for(var i:Number=0; i < buttons.length; i++) {
+                if(buttons[i].name == name) {
+                    index = i;
+                    break;
+                }
+            }
+            // new button
+            if(index == -1) {
+                if(!out) { return; }
+                var back:DisplayObject = getSkinElement("button") as DisplayObject;
+                currentTab++;
+                var button:DockJSButton = new DockJSButton(name, back, currentTab);
+                button.setClickFunction(click);
+                button.loadOutIcon(out);
+                if (over) { button.loadOverIcon(over); }
+                addChild(button);
+                buttons.push(button);
+                resize(getConfigParam('width'), getConfigParam('height'));
+            // update button
+            } else if(click) {
+                buttons[index].setClickFunction(click);
+                if(out) { buttons[index].loadOutIcon(out); }
+                if (over) { buttons[index].loadOverIcon(over); }
+            // remove button
+            } else {
+                removeChild(getChildAt(index));
+                buttons.splice(index,1);
+            }
+        };
+
+
 		/** Process state changes **/
 		private function stateHandler(evt:PlayerStateEvent = undefined):void {
 			switch (player.state) {

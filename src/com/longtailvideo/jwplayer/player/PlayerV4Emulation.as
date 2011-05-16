@@ -12,9 +12,11 @@ package com.longtailvideo.jwplayer.player {
 	import com.longtailvideo.jwplayer.model.IPlaylist;
 	import com.longtailvideo.jwplayer.model.Model;
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
+	import com.longtailvideo.jwplayer.model.PlaylistItemLevel;
 	import com.longtailvideo.jwplayer.plugins.IPlugin;
 	import com.longtailvideo.jwplayer.plugins.PluginConfig;
 	import com.longtailvideo.jwplayer.plugins.V4Plugin;
+	import com.longtailvideo.jwplayer.utils.JavascriptSerialization;
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.Strings;
 	import com.longtailvideo.jwplayer.view.interfaces.IControlbarComponent;
@@ -24,6 +26,8 @@ package com.longtailvideo.jwplayer.player {
 	
 	import flash.display.DisplayObject;
 	import flash.events.EventDispatcher;
+	import flash.net.URLRequest;
+	import flash.net.navigateToURL;
 	import flash.utils.describeType;
 
 	/**
@@ -63,21 +67,15 @@ package com.longtailvideo.jwplayer.player {
 		}
 		
 		private function playerReady(evt:PlayerEvent):void {
-			var newEvt:PlayerEvent = new PlayerEvent("");
-			id = newEvt.id;
-			client = newEvt.client;
-			version = newEvt.version;
+			id = evt.id;
+			client = evt.client;
+			version = evt.version;
 			 
 			dispatchEvent(new com.jeroenwijering.events.PlayerEvent(com.jeroenwijering.events.PlayerEvent.READY));
 			setupListeners();
 		}
 		
 		private function setupListeners():void {
-			
-			var m:Model;
-			var v:IControlbarComponent;
-			var c:Controller
-			
 			_player.addEventListener(PlayerEvent.JWPLAYER_ERROR, errorHandler);
 			
 			_player.addEventListener(MediaEvent.JWPLAYER_MEDIA_BUFFER, mediaBuffer);
@@ -109,6 +107,7 @@ package com.longtailvideo.jwplayer.player {
 		// Player Event Handlers
 		
 		private function errorHandler(evt:PlayerEvent):void {
+			modelEventDispatcher.dispatchEvent(new ModelEvent(ModelEvent.ERROR, {message:evt.message, id:id, client:client, version:version}));
 			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.ERROR, {message:evt.message, id:id, client:client, version:version}));
 		}
 		
@@ -120,6 +119,7 @@ package com.longtailvideo.jwplayer.player {
 		
 		private function mediaError(evt:MediaEvent):void {
 			modelEventDispatcher.dispatchEvent(new ModelEvent(ModelEvent.ERROR, {message:evt.message, id:id, client:client, version:version}));
+			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.ERROR, {message:evt.message, id:id, client:client, version:version}));
 		}
 		
 		private function mediaLoaded(evt:MediaEvent):void {
@@ -197,7 +197,7 @@ package com.longtailvideo.jwplayer.player {
 		
 		private function viewRedraw(width:Number, height:Number):void {
 			viewEventDispatcher.dispatchEvent(new com.jeroenwijering.events.ViewEvent(com.jeroenwijering.events.ViewEvent.REDRAW, {id:id, client:client, version:version}));
-			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.RESIZE, {width:width, height:height, fullscreen:_player.fullscreen, client:client, version:version}));
+			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.RESIZE, {width:width, height:height, fullscreen:_player.config.fullscreen, client:client, version:version}));
 		}
 
 		private function viewSeek(evt:ViewEvent):void {
@@ -221,58 +221,69 @@ package com.longtailvideo.jwplayer.player {
 		}
 
 		private function playlistLoad(evt:PlaylistEvent):void {
-			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.PLAYLIST, {playlist:playlistToArray(_player.playlist), id:id, client:client, version:version}));
+			controllerEventDispatcher.dispatchEvent(new ControllerEvent(ControllerEvent.PLAYLIST, {playlist:JavascriptSerialization.playlistToArray(_player.playlist), id:id, client:client, version:version}));
 		}
 		
 		
 		// Listeners
 
 		public override function addModelListener(type:String, listener:Function):void {
-			modelEventDispatcher.addEventListener(type, listener);
+			modelEventDispatcher.addEventListener(type.toUpperCase(), listener);
 		} 
 		public override function removeModelListener(type:String, listener:Function):void {
-			modelEventDispatcher.removeEventListener(type, listener);
+			modelEventDispatcher.removeEventListener(type.toUpperCase(), listener);
 		} 
 
 		public override function addViewListener(type:String, listener:Function):void {
-			viewEventDispatcher.addEventListener(type, listener);
+			viewEventDispatcher.addEventListener(type.toUpperCase(), listener);
 		} 
 		public override function removeViewListener(type:String, listener:Function):void {
-			viewEventDispatcher.removeEventListener(type, listener);
+			viewEventDispatcher.removeEventListener(type.toUpperCase(), listener);
 		} 
 
 		public override function addControllerListener(type:String, listener:Function):void {
-			controllerEventDispatcher.addEventListener(type, listener);
+			controllerEventDispatcher.addEventListener(type.toUpperCase(), listener);
 		} 
 		public override function removeControllerListener(type:String, listener:Function):void {
-			controllerEventDispatcher.removeEventListener(type, listener);
+			controllerEventDispatcher.removeEventListener(type.toUpperCase(), listener);
 		}
 		
 		// Event "dispatcher"
 		
 		public override function sendEvent(typ:String, prm:Object=undefined) : void {
-			Logger.log("V4 plugin sending event: " + typ);
+			Logger.log("V4 emulator sending event: " + typ + " " + Strings.print_r(prm));
 			switch (typ) {
 				case com.jeroenwijering.events.ViewEvent.FULLSCREEN:
-					_player.fullscreen = prm;
+					_player.fullscreen(prm);
 					break;
 				case com.jeroenwijering.events.ViewEvent.ITEM:
 					_player.playlistItem(Number(prm));
 					break;
 				case com.jeroenwijering.events.ViewEvent.LINK:
-					_player.link(Number(prm));
+					link(Number(prm));
 					break;
 				case com.jeroenwijering.events.ViewEvent.LOAD:
 					_player.load(prm);
 					break;
 				case com.jeroenwijering.events.ViewEvent.MUTE:
-					_player.mute = prm;
+					if (prm !== null && prm !== "") {
+						_player.mute(prm !== "false" && prm !== 0);
+					} else {
+						_player.mute(!_player.config.mute);
+					}
 					break;
 				case com.jeroenwijering.events.ViewEvent.NEXT:
 					_player.playlistNext();
 					break;
 				case com.jeroenwijering.events.ViewEvent.PLAY:
-					if (prm != null && Strings.serialize(prm.toString()) == false) {
+					if (prm === null || prm === "") {
+						if (_player.state == PlayerState.PAUSED || _player.state == PlayerState.IDLE) {
+							prm = "true";
+						} else {
+							prm = "false";
+						}
+					} 
+					if (prm !== null && Strings.serialize(prm.toString()) == false) {
 						_player.pause();
 					} else {
 						_player.play();
@@ -334,49 +345,16 @@ package com.longtailvideo.jwplayer.player {
 					break;
 			}
 
-			cfg['fullscreen'] = _player.fullscreen;
+			cfg['fullscreen'] = _player.config.fullscreen;
 			cfg['version'] = _player.version;
 			cfg['item'] = _player.playlist.currentIndex;
+			cfg['level'] = _player.playlist.currentItem ? _player.playlist.currentItem.currentLevel : 0;
 			
 			return cfg;
 		} 
 
 		public override function get playlist():Array {
-			return playlistToArray(_player.playlist);
-		}
-		
-		private function playlistToArray(list:IPlaylist):Array {
-			var arry:Array = [];
-			
-			for (var i:Number=0; i < list.length; i++) {
-				arry.push(playlistItemToObject(list.getItemAt(i)));
-			}
-			
-			return arry;
-		}
-		
-		private function playlistItemToObject(item:PlaylistItem):Object {
-			var obj:Object = {
-				'author':		item.author,
-				'date':			item.date,
-				'description':	item.description,
-				'duration':		item.duration,
-				'file':			item.file,
-				'image':		item.image,
-				'link':			item.link,
-				'mediaid':		item.mediaid,
-				'start':		item.start,
-				'streamer':		item.streamer,
-				'tags':			item.tags,
-				'title':		item.title,
-				'type':			item.provider
-			};
-			
-			for (var i:String in item) {
-				obj[i] = item[i];
-			}
-			
-			return obj;
+			return JavascriptSerialization.playlistToArray(_player.playlist);
 		}
 		
 		public override function getPluginConfig(plugin:Object):Object {
@@ -425,6 +403,15 @@ package com.longtailvideo.jwplayer.player {
 					} catch (e:Error) {}
 			}
 			return result;
+		}
+		
+		private function link(playlistIndex:Number):void {
+			if (isNaN(playlistIndex))
+				playlistIndex = _player.playlist.currentIndex;
+			
+			if (playlistIndex >= 0 && playlistIndex < _player.playlist.length) {
+				navigateToURL(new URLRequest(_player.playlist.getItemAt(playlistIndex).link), _player.config.linktarget);
+			}
 		}
 	}
 }

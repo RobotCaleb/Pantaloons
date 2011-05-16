@@ -41,7 +41,6 @@ package com.longtailvideo.jwplayer.events {
 	     *		<tr><td><code>id</code></td><td>ID of the player in the HTML DOM. Used by javascript to reference the player.</td></tr>
 	     *		<tr><td><code>client</code></td><td>A string representing the client the player runs in (e.g. FLASH WIN 9,0,115,0).</td></tr>
   	     * 		<tr><td><code>version</code></td><td>A string representing the major version, minor version and revision number of the player (e.g. 5.0.395).</td></tr>
-  	     * 		<tr><td><code>message</code></td><td>Message explaining the cause of the error</td></tr>
   	     * </table>
   	     * 
 		 * @see com.longtailvideo.jwplayer.player.Player
@@ -59,7 +58,6 @@ package com.longtailvideo.jwplayer.events {
 		 *		<tr><td><code>id</code></td><td>ID of the player in the HTML DOM. Used by javascript to reference the player.</td></tr>
 		 *		<tr><td><code>client</code></td><td>A string representing the client the player runs in (e.g. FLASH WIN 9,0,115,0).</td></tr>
 		 * 		<tr><td><code>version</code></td><td>A string representing the major version, minor version and revision number of the player (e.g. 5.0.395).</td></tr>
-		 * 		<tr><td><code>message</code></td><td>Message explaining the cause of the error</td></tr>
 		 * </table>
 		 * 
 		 * @see com.longtailvideo.jwplayer.player.Player
@@ -77,33 +75,47 @@ package com.longtailvideo.jwplayer.events {
 		 *		<tr><td><code>id</code></td><td>ID of the player in the HTML DOM. Used by javascript to reference the player.</td></tr>
 		 *		<tr><td><code>client</code></td><td>A string representing the client the player runs in (e.g. FLASH WIN 9,0,115,0).</td></tr>
 		 * 		<tr><td><code>version</code></td><td>A string representing the major version, minor version and revision number of the player (e.g. 5.0.395).</td></tr>
-		 * 		<tr><td><code>message</code></td><td>Message explaining the cause of the error</td></tr>
 		 * </table>
 		 * 
 		 * @see com.longtailvideo.jwplayer.player.Player
 		 * @eventType jwplayerError
 		 */
 		public static var JWPLAYER_ERROR:String = "jwplayerError";
-		
+
+		/**
+		 * The PlayerEvent.JWPLAYER_FULLSCREEN constant defines the value of the
+		 * <code>type</code> property of the event object
+		 * for a <code>jwplayerFullscreen</code> event.
+		 *
+		 * <table class="innertable">
+		 *		<tr><th>Property</th><th>Value</th></tr>
+		 *		<tr><td><code>id</code></td><td>ID of the player in the HTML DOM. Used by javascript to reference the player.</td></tr>
+		 *		<tr><td><code>client</code></td><td>A string representing the client the player runs in (e.g. FLASH WIN 9,0,115,0).</td></tr>
+		 * 		<tr><td><code>version</code></td><td>A string representing the major version, minor version and revision number of the player (e.g. 5.0.395).</td></tr>
+		 * 		<tr><td><code>message</code></td><td>New fullscreen mode ("true", or "false")</td></tr>
+		 * </table>
+		 * 
+		 * @see com.longtailvideo.jwplayer.player.Player
+		 * @eventType jwplayerFullscreen
+		 */
+		public static var JWPLAYER_FULLSCREEN:String = "jwplayerFullscreen";
+
 		public var id:String;
 		public var client:String;
 		public var version:String;
-		
 		public var message:String;
 
 		public function PlayerEvent(type:String, msg:String=undefined) {
 			super(type, false, false);
 
 			try {
-				if (ExternalInterface.available) {
-					this.id = ExternalInterface.objectID;
-				}
-				this.client = "FLASH" + Capabilities.version;
-				this.version = PlayerVersion.version;
-			} catch (e:Error) {}
+				this.id = PlayerVersion.id ? PlayerVersion.id : ExternalInterface.objectID;
+			} catch(e:Error) {}
+			this.client = "FLASH " + Capabilities.version;
+			this.version = PlayerVersion.version;
 			this.message = msg;
 		}
-		
+
 		public override function toString():String {
 			return '[PlayerEvent type="' + type + '"' 
 				+ ' id="' + id + '"'

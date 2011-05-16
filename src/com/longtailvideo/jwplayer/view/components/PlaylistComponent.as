@@ -1,10 +1,11 @@
 package com.longtailvideo.jwplayer.view.components {
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
 	import com.longtailvideo.jwplayer.events.PlaylistEvent;
+	import com.longtailvideo.jwplayer.events.ViewEvent;
+	import com.longtailvideo.jwplayer.model.Color;
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
 	import com.longtailvideo.jwplayer.player.IPlayer;
 	import com.longtailvideo.jwplayer.player.PlayerState;
-	import com.longtailvideo.jwplayer.utils.AssetLoader;
 	import com.longtailvideo.jwplayer.utils.Draw;
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.RootReference;
@@ -15,20 +16,27 @@ package com.longtailvideo.jwplayer.view.components {
 	import com.longtailvideo.jwplayer.view.interfaces.IPlaylistComponent;
 	import com.longtailvideo.jwplayer.view.interfaces.ISkin;
 	import com.longtailvideo.jwplayer.view.skins.DefaultSkin;
+	import com.longtailvideo.jwplayer.view.skins.PNGSkin;
 	import com.longtailvideo.jwplayer.view.skins.SWFSkin;
 	
+	import flash.accessibility.AccessibilityProperties;
+	import flash.display.Bitmap;
 	import flash.display.DisplayObject;
 	import flash.display.DisplayObjectContainer;
 	import flash.display.Loader;
+	import flash.display.LoaderInfo;
 	import flash.display.MovieClip;
 	import flash.display.Sprite;
-	import flash.events.ErrorEvent;
 	import flash.events.Event;
+	import flash.events.IOErrorEvent;
 	import flash.events.MouseEvent;
 	import flash.geom.ColorTransform;
 	import flash.geom.Rectangle;
+	import flash.net.URLRequest;
+	import flash.system.LoaderContext;
 	import flash.text.TextField;
 	import flash.text.TextFormat;
+	import flash.text.TextFormatAlign;
 	import flash.utils.Dictionary;
 	import flash.utils.clearInterval;
 	import flash.utils.setInterval;
@@ -69,7 +77,9 @@ package com.longtailvideo.jwplayer.view.components {
 		private var pendingResize:Rectangle;
 		private var pendingBuild:Boolean = false;
 		/** Map of images and loaders **/
-		private var imageLoaderMap:Dictionary = new Dictionary();
+		private var imageLoaderMap:Dictionary;
+		/** Which field element can be colorized **/		
+		private var colorizableFields:Array = ["title", "duration", "description", "author", "tags"];
 		
 		public function PlaylistComponent(player:IPlayer) {
 			super(player, "playlist");
@@ -93,56 +103,34 @@ package com.longtailvideo.jwplayer.view.components {
 		protected function continueSetup(evt:Event=null):void {
 			skinLoaded = true;
 			
-			background = getSkinElement("background") as Sprite;
-			if (!background) {
-				background = new Sprite();
-				background.name = "background";
-				background.graphics.beginFill(0, 1);
-				background.graphics.drawRect(0, 0, 1, 1);
-				background.graphics.endFill();
+			background = new Sprite();
+			background.graphics.beginFill(0, 0);
+			background.graphics.drawRect(0, 0, 1, 1);
+			var bgSkin:DisplayObject = getSkinElement("background") as Sprite;
+
+			if (bgSkin) { 
+				background.addChild(bgSkin);
 			}
+			
+			if (backgroundColor) {
+				var backgroundSheet:Sprite = new Sprite();
+				backgroundSheet.graphics.beginFill(backgroundColor.color, 1);
+				backgroundSheet.graphics.drawRect(0, 0, bgSkin ? bgSkin.width : 1, bgSkin ? bgSkin.height : 1);
+				backgroundSheet.graphics.endFill();
+				background.addChildAt(backgroundSheet, 0);
+			}
+			background.name = "background";
 			addElement(background);
-			slider = getSkinElement("slider") as Sprite;
-			if (!slider) {
-				slider = new Sprite();
-				
-				var sliderBack:Sprite = getSkinElement("sliderBackground") as Sprite;
-				if (!sliderBack) {
-					sliderBack = new Sprite();
-					sliderBack.graphics.beginFill(0, 1);
-					sliderBack.graphics.drawRect(0, 0, 1, 1);
-					sliderBack.graphics.endFill();
-				}
-				sliderBack.name = "back";
-				addElement(sliderBack,slider);
-				
-				var sliderRail:Sprite = getSkinElement("sliderRail") as Sprite;
-				if (!sliderRail){
-					sliderRail = new Sprite();
-					sliderRail.graphics.beginFill(0, 1);
-					sliderRail.graphics.drawRect(0, 0, 7, 22);
-					sliderRail.graphics.endFill();
-				}
-				sliderRail.name = "rail";
-				addElement(sliderRail,slider);
-				
-				var sliderThumb:Sprite = getSkinElement("sliderThumb") as Sprite;
-				if (!sliderThumb) {
-					sliderThumb = new Sprite();
-					sliderThumb.graphics.beginFill(0, 1);
-					sliderThumb.graphics.drawRect(0, 0, 5, 54);
-					sliderThumb.graphics.endFill();
-				}
-				sliderThumb.name = "icon";
-				addElement(sliderThumb,slider,(sliderRail.width - sliderThumb.width)/2);
-			}
-			addElement(slider);
+			
+			slider = buildSlider();
 			slider.buttonMode = true;
 			slider.mouseChildren = false;
 			slider.addEventListener(MouseEvent.MOUSE_DOWN, sdownHandler);
 			slider.addEventListener(MouseEvent.MOUSE_OVER, soverHandler);
 			slider.addEventListener(MouseEvent.MOUSE_OUT, soutHandler);
 			slider.visible = false;
+			addElement(slider);
+			
 			listmask = getSkinElement("masker") as Sprite;
 			if (!listmask) {
 				listmask = new Sprite();
@@ -151,6 +139,7 @@ package com.longtailvideo.jwplayer.view.components {
 				listmask.graphics.endFill();
 			}
 			addElement(listmask);
+			
 			list = getSkinElement("list") as Sprite;
 			if (!list) {
 				list = new Sprite();
@@ -166,6 +155,7 @@ package com.longtailvideo.jwplayer.view.components {
 			list.addEventListener(MouseEvent.MOUSE_OVER, overHandler);
 			list.addEventListener(MouseEvent.MOUSE_OUT, outHandler);
 			addElement(list);
+			
 			buttons = new Array();
 			this.addEventListener(MouseEvent.MOUSE_WHEEL, wheelHandler);
 			try {
@@ -183,72 +173,139 @@ package com.longtailvideo.jwplayer.view.components {
 			}
 		}
 		
+		private function buildSlider():Sprite {
+			var newSlider:Sprite = getSkinElement("slider") as Sprite;
+
+			if (!newSlider) {
+				newSlider = new Sprite();
+				var sliderBack:Sprite = buildSliderElement('back', 'sliderBackground');
+				addElement(sliderBack, newSlider);
+				
+				var sliderRail:Sprite = buildSliderElement('rail', 'sliderRail', 7, 22);
+				addElement(sliderRail, newSlider);
+				
+				var sliderThumb:Sprite = buildSliderElement('icon', 'sliderThumb', 5, 54);
+				addElement(sliderThumb, newSlider, (sliderRail.width - sliderThumb.width) / 2);
+			}
+
+			/* These elements were never included in the swf skins, so add them even if the slider was in a SWF skin */
+			
+			var sliderCapTop:Sprite = buildSliderElement('captop', 'sliderCapTop');
+			addElement(sliderCapTop, newSlider);
+
+			var sliderCapBottom:Sprite = buildSliderElement('capbottom', 'sliderCapBottom');
+			addElement(sliderCapBottom, newSlider);
+			
+			return newSlider;
+		}
+		
+		private function buildSliderElement(name:String, skinElementName:String, width:Number=0, height:Number=0):Sprite {
+			var newElement:Sprite = getSkinElement(skinElementName) as Sprite;
+			if (!newElement) {
+				newElement = new Sprite();
+				if (width * height > 0) {
+					newElement.graphics.beginFill(0, 1);
+					newElement.graphics.drawRect(0, 0, width, height);
+					newElement.graphics.endFill();
+				}
+			}
+			try {
+				newElement.name = name;
+			} catch(e:Error) {} //This is not possible if the element was created and named from an FLA
+			
+			return newElement;
+		}
+		
 		
 		private function buildButton():MovieClip {
 			var btn:MovieClip = new MovieClip();
 			
-			var backOver:Sprite = getSkinElement("itemOver") as Sprite;
-			if (!backOver) {
-				backOver = new Sprite();
-				backOver.graphics.beginFill(0, 1);
-				backOver.graphics.drawRect(0, 0, 1, 1);
-				backOver.graphics.endFill();
+			var backActive:Sprite = getSkinElement("itemActive") as Sprite;
+			if (backActive) {
+				backActive.name = "backActive";
+				backActive.visible = false;
+				addElement(backActive, btn, 0, 0);
 			}
-			backOver.name = "backOver";
-			addElement(backOver, btn, 0, 0);
+
+			var backOver:Sprite = getSkinElement("itemOver") as Sprite;
+			if (backOver) {
+				backOver.name = "backOver";
+				backOver.visible = false;
+				addElement(backOver, btn, 0, 0);
+			}
 			
 			var back:Sprite = getSkinElement("item") as Sprite;
 			if (!back) {
 				back = new Sprite();
 				back.graphics.beginFill(0, 1);
-				back.graphics.drawRect(0, 0, 100, 100);
+				back.graphics.drawRect(0, 0, 470, 100);
 				back.graphics.endFill();
 			}
 			back.name = "back";
 			addElement(back, btn, 0, 0);
 			
-			var img:Sprite = new Sprite();
+			var img:MovieClip = new MovieClip;
+			var imgBG:Sprite = getSkinElement("itemImage") as Sprite;
+			var imageOffset:Number = 5;
 			img.name = "image";
-			img.graphics.beginFill(0, 1);
-			img.graphics.drawRect(0, 0, 80, back.height);
+			img.graphics.beginFill(0, 0);
+			if (imgBG) {
+				imgBG.name = "imageBackground";
+				img.addChild(imgBG);
+				imgBG.x = imgBG.y = (back.height - imgBG.height) / 2;
+				img.graphics.drawRect(0, 0, imgBG.width + 2 * imgBG.x, back.height);
+				imageOffset = 0;
+			} else {
+				img.graphics.drawRect(0, 0, 4 * back.height / 3, back.height);
+			}
 			img.graphics.endFill();
-			addElement(img, btn, 1, 1);
+			img['stacker.noresize'] = true;
+			addElement(img, btn, 0, 0);
 			
 			var titleTextFormat:TextFormat = new TextFormat();
-			titleTextFormat.size = 13;
-			titleTextFormat.font = "_sans";
-			titleTextFormat.bold = true;
+			titleTextFormat.size = fontSize ? fontSize : 13;
+			titleTextFormat.font = fontFace ? fontFace : "_sans";
+			titleTextFormat.bold = (!fontWeight || fontWeight == "bold");
+			titleTextFormat.italic = (fontStyle == "italic");
 			var title:TextField = new TextField();
 			title.name = "title";
-			//title.autoSize = TextFieldAutoSize.LEFT;
 			title.defaultTextFormat = titleTextFormat;
 			title.wordWrap = true;
-			title.multiline = true;
-			title.width = 250;
+			title.multiline = true;	
+			title.width = 300;
 			title.height = 20;
-			addElement(title, btn, 85, 2);
-			
+			addElement(title, btn, img.width + imageOffset, 3);
+				
 			var descriptionTextFormat:TextFormat = new TextFormat();
-			descriptionTextFormat.size = 11;
-			descriptionTextFormat.font = "_sans";
+			descriptionTextFormat.size = fontSize ? fontSize - 2 : 11;
+			descriptionTextFormat.leading = 1;
+			descriptionTextFormat.font = fontFace ? fontFace : "_sans";
+			descriptionTextFormat.bold = (fontWeight == "bold");
+			descriptionTextFormat.italic = (fontStyle == "italic");
 			var description:TextField = new TextField();
 			description.name = "description";
-			//description.autoSize = TextFieldAutoSize.LEFT;
 			description.wordWrap = true;
 			description.multiline = true;
-			description.width= 290;
-			description.height = back.height - 20;
+			description.width = 335;
+			description.height = back.height - 22;
 			description.defaultTextFormat = descriptionTextFormat;
-			addElement(description, btn, 86, 20);
+			if(back.height > 40) {
+				addElement(description, btn, img.width + imageOffset + 1, 22);
+			}
 			
 			var duration:TextField = new TextField();
 			duration.name = "duration";
 			duration.width = 40;
 			duration.height = 20;
-			addElement(duration, btn, 335, 4);
+			titleTextFormat.align = TextFormatAlign.RIGHT;
+			titleTextFormat.size = fontSize ? fontSize - 1 : 11;
+			titleTextFormat.rightMargin = 5;
+			duration.defaultTextFormat = titleTextFormat;
+			addElement(duration, btn, title.x + title.width - 2, 4);
 			
-			backOver.width = btn.width;			
 			back.width = btn.width;
+			if (backOver) backOver.width = btn.width;
+			if (backActive) backActive.width = btn.width;
 			
 			return btn;
 		}
@@ -257,26 +314,49 @@ package com.longtailvideo.jwplayer.view.components {
 			if (!parent) {
 				parent = this;
 			}
-			parent.addChild(doc);
 			doc.x = x;
+			parent.addChild(doc);
 			doc.y = y;
 		}
 		
+		private function get overColor():Color {
+			return getConfigParam("overcolor") ? new Color(String(getConfigParam("overcolor"))) : null;
+		}
+		
+		private function get activeColor():Color {
+			return getConfigParam("activecolor") ? new Color(String(getConfigParam("activecolor"))) : null;
+		}
 		
 		/** Handle a button rollover. **/
 		private function overHandler(evt:MouseEvent):void {
 			var idx:Number = Number(evt.target.name);
-			if (front && back) {
-				for (var itm:String in _player.playlist.getItemAt(idx)) {
+
+			if (fontColor && overColor) {
+				for each (var itm:String in colorizableFields) {
+					if (getButton(idx).getChildByName(itm) && getButton(idx).getChildByName(itm) is TextField) {
+						(getButton(idx).getChildByName(itm) as TextField).textColor = overColor.color;
+					}
+				}
+			} else if (front && back) {
+				for each (itm in colorizableFields) {
 					if (getButton(idx).getChildByName(itm) && getButton(idx).getChildByName(itm) is TextField) {
 						(getButton(idx).getChildByName(itm) as TextField).textColor = back.color;
 					}
 				}
-				if (swfSkinned) {
-					getButton(idx).getChildByName("back").transform.colorTransform = light;
-				} else {
-					getButton(idx).setChildIndex(getButton(idx).getChildByName("back"), 0);
-					getButton(idx).setChildIndex(getButton(idx).getChildByName("backOver"), 1);
+			}
+
+			var overClip:DisplayObject = getButton(idx).getChildByName("backOver");
+			var outClip:DisplayObject = getButton(idx).getChildByName("back");
+			var activeClip:DisplayObject = getButton(idx).getChildByName("backActive");
+			if (swfSkinned) {
+				if (front && back) {
+					outClip.transform.colorTransform = light;
+				}
+			} else {
+				if (overClip) {
+					overClip.visible = true;
+					outClip.visible = false;
+					if (activeClip) activeClip.visible = false;
 				}
 			}
 		}
@@ -285,23 +365,75 @@ package com.longtailvideo.jwplayer.view.components {
 		/** Handle a button rollover. **/
 		private function outHandler(evt:MouseEvent):void {
 			var idx:Number = Number(evt.target.name);
-			if (front && back) {
-				for (var itm:String in _player.playlist.getItemAt(idx)) {
-					if (getButton(idx).getChildByName(itm) && getButton(idx).getChildByName(itm) is TextField) {
-						if (idx == active) {
-							(getButton(idx).getChildByName(itm) as TextField).textColor = light.color;
+			for each (var itm:String in colorizableFields) {
+				var button:Sprite = getButton(idx); 
+				if (button && button.getChildByName(itm)) {
+					var field:TextField = (getButton(idx).getChildByName(itm) as TextField)
+					if (field) {
+						if (idx == active && (activeColor || (light && swfSkinned))) {
+							field.textColor = activeColor ? activeColor.color : (fontColor ? fontColor.color : light.color);
 						} else {
-							(getButton(idx).getChildByName(itm) as TextField).textColor = front.color;
+							if (fontColor && overColor) {
+								field.textColor =  fontColor.color;
+							} else if (front && back) {
+								field.textColor =  front.color;
+							}
+						}
+					}
+					
+					var overClip:DisplayObject = getButton(idx).getChildByName("backOver");
+					var outClip:DisplayObject = getButton(idx).getChildByName("back");
+					var activeClip:DisplayObject = getButton(idx).getChildByName("backActive");
+					if (swfSkinned) {
+						if (front && back) {
+							outClip.transform.colorTransform = back;
+						} 
+					} else if (overClip) {
+						overClip.visible = false;
+						if (activeClip) {
+							outClip.visible = (idx != active);
+							activeClip.visible = (idx == active);
+						} else {
+							outClip.visible = true;
 						}
 					}
 				}
-				if (swfSkinned) {
-					getButton(idx).getChildByName("back").transform.colorTransform = back;
+			}
+		}
+		
+		private function get _playlist():Array {
+			var arr:Array = [];
+			for (var i:Number = 0; i < _player.playlist.length; i++) {
+				if (_player.playlist.getItemAt(i).hasOwnProperty("ova.hidden")){
+					continue;
+				}
+				arr.push(_player.playlist.getItemAt(i));
+			}
+			return arr;
+		}
+		
+		private function translateUIToModelPlaylistIndex(index:Number):Number{
+			for (var i:Number = 0; i < _player.playlist.length; i++) {
+				if (_player.playlist.getItemAt(i).hasOwnProperty("ova.hidden")){
+					continue;
 				} else {
-					getButton(idx).setChildIndex(getButton(idx).getChildByName("backOver"), 0);
-					getButton(idx).setChildIndex(getButton(idx).getChildByName("back"), 1);
+					if (index == 0){
+						return i;
+					}
+					index--;
 				}
 			}
+			return 0;
+		}
+		
+		private function translateModelToUIPlaylistIndex(index:Number):Number{
+			var result = index;
+			for (var i:Number = 0; i < index; i++) {
+				if (_player.playlist.getItemAt(i).hasOwnProperty("ova.hidden")){
+					result--;
+				}
+			}
+			return result;
 		}
 		
 		
@@ -319,10 +451,10 @@ package com.longtailvideo.jwplayer.view.components {
 			var hei:Number = getConfigParam("height");
 			listmask.height = hei;
 			listmask.width = wid;
-			proportion = _player.playlist.length * buttonheight / hei;
+			proportion = _playlist.length * buttonheight / hei;
 			if (proportion > 1.01) {
 				wid -= slider.width;
-				buildSlider();
+				layoutSlider();
 			} else {
 				slider.visible = false;
 			}
@@ -332,12 +464,14 @@ package com.longtailvideo.jwplayer.view.components {
 					list.removeChild(getButton(j));
 				}
 				buttons = new Array();
+				imageLoaderMap = new Dictionary();
 			} else {
 				if (proportion > 1) {
 					scrollEase();
 				}
 			}
-			for (var i:Number = 0; i < _player.playlist.length; i++) {
+			var currentTab:Number=500;
+			for (var i:Number = 0; i < _playlist.length; i++) {
 				if (clr) {
 					var btn:MovieClip;
 					if (swfSkinned) {
@@ -346,6 +480,9 @@ package com.longtailvideo.jwplayer.view.components {
 						btn = buildButton();
 						list.addChild(btn);
 					}
+					btn.tabEnabled = true;
+					btn.tabChildren = false;
+					btn.tabIndex = currentTab++;
 					var stc:Stacker = new Stacker(btn);
 					btn.y = i * buttonheight;
 					btn.buttonMode = true;
@@ -362,13 +499,25 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		
 		/** Setup the scrollbar component **/
-		private function buildSlider():void {
+		private function layoutSlider():void {
 			slider.visible = true;
 			slider.x = getConfigParam("width") - slider.width;
-			var dif:Number = getConfigParam("height") - slider.height - slider.y;
-			slider.getChildByName("back").height += dif;
-			slider.getChildByName("rail").height += dif;
-			slider.getChildByName("icon").height = Math.round(slider.getChildByName("rail").height / proportion);
+			if (player.skin is PNGSkin) {
+				var capTop:DisplayObject = slider.getChildByName("captop");
+				var capBottom:DisplayObject = slider.getChildByName("capbottom");
+				slider.getChildByName("back").y = capTop.height;
+				slider.getChildByName("rail").y = capTop.height;
+				slider.getChildByName("icon").y = capTop.height;
+				slider.getChildByName("back").height = getConfigParam('height') - capBottom.height - capTop.height;
+				slider.getChildByName("rail").height = getConfigParam('height') - capBottom.height - capTop.height;
+				slider.getChildByName("icon").height = Math.round(slider.getChildByName("rail").height / proportion);
+				capBottom.y = getConfigParam('height') - capBottom.height; 
+			} else {
+				var dif:Number = getConfigParam("height") - slider.height - slider.y;
+				slider.getChildByName("back").height += dif;
+				slider.getChildByName("rail").height += dif;
+				slider.getChildByName("icon").height = Math.round(slider.getChildByName("rail").height / proportion);
+			}
 		}
 		
 		
@@ -417,11 +566,13 @@ package com.longtailvideo.jwplayer.view.components {
 					}
 				} catch (err:Error) {
 				}
-				if (_player.config.lightcolor) {
-					light = new ColorTransform();
-					light.color = _player.config.lightcolor.color;
-				} else {
-					light = front;
+				if (swfSkinned) {
+					if (_player.config.lightcolor) {
+						light = new ColorTransform();
+						light.color = _player.config.lightcolor.color;
+					} else {
+						light = front;
+					}
 				}
 			}
 		}
@@ -429,34 +580,44 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		/** Setup button elements **/
 		private function setContents(idx:Number):void {
-			var playlistItem:PlaylistItem = _player.playlist.getItemAt(idx);
-			var title:TextField = getButton(idx).getChildByName("title") as TextField;
-			var description:TextField = getButton(idx).getChildByName("description") as TextField;
-			var duration:TextField = getButton(idx).getChildByName("duration") as TextField;
-			var author:TextField = getButton(idx).getChildByName("author") as TextField;
-			var tags:TextField = getButton(idx).getChildByName("tags") as TextField;
-			if (playlistItem.image) {
-				if (getConfigParam('thumbs') != false && _player.config.playlist != 'none' && playlistItem.image) {
-					var img:Sprite = getButton(idx).getChildByName("image") as Sprite;
-					img.alpha = 0;
-					if (img && playlistItem.image) {
-						var ldr:AssetLoader = new AssetLoader();
+			var playlistItem:PlaylistItem = _playlist[idx];
+			var btn:Sprite = getButton(idx); 
+			var title:TextField = btn.getChildByName("title") as TextField;
+			var description:TextField = btn.getChildByName("description") as TextField;
+			var duration:TextField = btn.getChildByName("duration") as TextField;
+			var author:TextField = btn.getChildByName("author") as TextField;
+			var tags:TextField = btn.getChildByName("tags") as TextField;
+			if (playlistItem.image || playlistItem['playlist.image']) {
+				var imageFile:String = playlistItem['playlist.image'] ? playlistItem['playlist.image'] : playlistItem.image;
+				if (getConfigParam('thumbs') != false && _player.config.playlist != 'none') {
+					var img:Sprite = btn.getChildByName("image") as Sprite;
+					if (img) {
+						img.alpha = 0;
+						var ldr:Loader = new Loader();
 						imageLoaderMap[ldr] = idx;
-						ldr.addEventListener(Event.COMPLETE, loaderHandler);
-						ldr.addEventListener(ErrorEvent.ERROR, errorHandler);
-						ldr.load(playlistItem.image);
+						ldr.contentLoaderInfo.addEventListener(Event.COMPLETE, loaderHandler);
+						ldr.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, errorHandler);
+						ldr.load(new URLRequest(imageFile), new LoaderContext(true));
 					}
 				}
 			}
 			if (duration && playlistItem.duration) {
 				if (playlistItem.duration > 0) {
-					duration.text = Strings.digits(playlistItem.duration);
-					if (front) {
+					duration.htmlText = "<b>" + Strings.digits(playlistItem.duration) + "</b>";
+					if (fontColor) {
+						duration.textColor = fontColor.color;
+					} else if (front) {
 						duration.textColor = front.color;
 					}
+				} else {
+					duration.visible = false;
 				}
 			}
 			try {
+				var acs:AccessibilityProperties = new AccessibilityProperties();
+				acs.name = playlistItem.title;
+				acs.description = playlistItem.description;
+				btn.accessibilityProperties = acs;
 				if (description) { 
 					description.htmlText = playlistItem.description; 
 				}
@@ -469,17 +630,27 @@ package com.longtailvideo.jwplayer.view.components {
 				if (tags) { 
 					tags.htmlText = playlistItem.tags; 
 				}
-				if (front) {
-					description.textColor = front.color;
-					title.textColor = front.color;
+				if (fontColor) {
+					if (description) { description.textColor = fontColor.color; }
+					if (title) { title.textColor = fontColor.color; }
+					if (author) { author.textColor = fontColor.color; }
+					if (tags) { tags.textColor = fontColor.color; }
+				} else if (front) {
+					if (description) { description.textColor = front.color; }
+					if (title) { title.textColor = front.color; }
+					if (author) { author.textColor = front.color; }
+					if (tags) { tags.textColor = front.color; }
 				}
 			} catch (e:Error) {
 			}
-			if (getButton(idx).getChildByName("image") && (!playlistItem.image || getConfigParam('thumbs') == false)) {
-				getButton(idx).getChildByName("image").visible = false;
+			img = btn.getChildByName("image") as MovieClip;
+			if (img && (!(playlistItem.image || playlistItem['playlist.image']) || getConfigParam('thumbs') == false)) {
+				if (!img.getChildByName("imageBackground")) {
+					btn.getChildByName("image").visible = false;
+				}
 			}
 			if (back && swfSkinned) {
-				getButton(idx).getChildByName("back").transform.colorTransform = back;
+				btn.getChildByName("back").transform.colorTransform = back;
 			}
 		}
 		
@@ -487,15 +658,35 @@ package com.longtailvideo.jwplayer.view.components {
 		/** Loading of image completed; resume loading **/
 		private function loaderHandler(evt:Event):void {
 			try {
-				var ldr:AssetLoader = evt.target as AssetLoader;
-				var button:Sprite = getButton(imageLoaderMap[ldr]);
-				var img:Sprite = button.getChildByName("image") as Sprite;
-				img.alpha = 1;
-				var msk:Sprite = Draw.rect(button, '0xFF0000', img.width, img.height, img.x, img.y);
-				img.mask = msk;
-				img.addChild(ldr.loadedObject);
-				Draw.smooth(ldr.loadedObject);
-				Stretcher.stretch(ldr.loadedObject, image[0], image[1], Stretcher.FILL);
+				var ldr:Loader = (evt.target as LoaderInfo).loader;
+				if (ldr in imageLoaderMap) {
+					var button:Sprite = getButton(imageLoaderMap[ldr]);
+					delete imageLoaderMap[ldr];
+					var img:Sprite = button.getChildByName("image") as Sprite;
+					var bg:Sprite = img.getChildByName("imageBackground") as Sprite;
+					img.alpha = 1;
+					var msk:DisplayObject;
+					if (bg) {
+						msk = getSkinElement('itemImage');
+						msk.x = bg.x;
+						msk.y = bg.y;
+						msk.cacheAsBitmap = true;
+						button.addChild(msk);
+						ldr.x = bg.x;
+						ldr.y = bg.y;
+					} else {
+						msk = Draw.rect(button, '0xFF0000', img.width, img.height, img.x, img.y);
+					}
+					img.addChild(ldr);
+					img.cacheAsBitmap = true;
+					img.mask = msk;
+					try {
+						Draw.smooth(ldr.content as Bitmap);
+					} catch (e:Error) {
+						Logger.log('Could not smooth thumbnail image: ' + e.message);
+					}
+					Stretcher.stretch(ldr, image[0], image[1], Stretcher.FILL);
+				}
 			} catch (err:Error) {
 				Logger.log('Error loading playlist image: '+err.message);
 			}
@@ -505,13 +696,21 @@ package com.longtailvideo.jwplayer.view.components {
 		/** Loading of image failed; hide image **/
 		private function errorHandler(evt:Event):void {
 			try {
-				var ldr:AssetLoader = evt.target as AssetLoader;
+				var ldr:Loader = (evt.target as LoaderInfo).loader;
 				var button:Sprite = getButton(imageLoaderMap[ldr]);
-				var img:Sprite = button.getChildByName("image") as Sprite;
-				img.visible = false;
-				(buttons[imageLoaderMap[ldr]].s as Stacker).rearrange(getConfigParam("width"));
+				if (button) {
+					var img:Sprite = button.getChildByName("image") as Sprite;
+					if (!img.getChildByName("imageBackground")) {
+						img.visible = false;
+					}
+					if (proportion > 1.01) {
+						(buttons[imageLoaderMap[ldr]].s as Stacker).rearrange(getConfigParam("width")-slider.width);
+					} else {
+						(buttons[imageLoaderMap[ldr]].s as Stacker).rearrange(getConfigParam("width"));
+					}
+				}
 			} catch (err:Error) {
-				Logger.log('Error loading playlist image '+(ldr.loadedObject as Loader).loaderInfo.url+': '+err.message);
+				Logger.log('Error loading playlist image '+ ldr.loaderInfo.url+': '+err.message);
 			}
 		}
 		
@@ -559,7 +758,9 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		/** Handle a click on a button. **/
 		private function clickHandler(evt:MouseEvent):void {
-			_player.playlistItem(Number(evt.target.name));
+			var itemNumber:Number = translateUIToModelPlaylistIndex(Number(evt.target.name)); 
+			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_ITEM, itemNumber)); 
+			_player.playlistItem(itemNumber);
 		}
 		
 		
@@ -589,37 +790,66 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		/** Switch the currently active item */
 		protected function itemHandler(evt:PlaylistEvent = null):void {
-			var idx:Number = _player.playlist.currentIndex;
+			var idx:Number = translateModelToUIPlaylistIndex(_player.playlist.currentIndex);
+			
+			if (!skinLoaded) return;
+			
 			clearInterval(scrollInterval);
 			if (proportion > 1.01) {
 				scrollInterval = setInterval(scrollEase, 50, idx * buttonheight / proportion, -idx * buttonheight + listmask.y);
 			}
-			if (light) {
-				for (var itm:String in _player.playlist.getItemAt(idx)) {
+			if ((light && swfSkinned) || activeColor) {
+				for each (var itm:String in colorizableFields) {
 					if (getButton(idx).getChildByName(itm)) {
 						try {
-							(getButton(idx).getChildByName(itm) as TextField).textColor = light.color;
+							(getButton(idx).getChildByName(itm) as TextField).textColor = swfSkinned ? light.color : activeColor.color;
 						} catch (err:Error) {
 						}
 					}
 				}
 			}
-			if (back && swfSkinned) {
-				getButton(idx).getChildByName("back").transform.colorTransform = back;
-			}
+			
 			if (!isNaN(active)) {
-				if (front) {
-					for (var act:String in _player.playlist.getItemAt(active)) {
+				if (front || fontColor) {
+					for each (var act:String in colorizableFields) {
 						if (getButton(active).getChildByName(act)) {
 							try {
-								(getButton(active).getChildByName(act) as TextField).textColor = front.color;
+								(getButton(active).getChildByName(act) as TextField).textColor = fontColor ? fontColor.color : front.color;
 							} catch (err:Error) {
 							}
 						}
 					}
 				}
+
+				if (swfSkinned) {
+					if (back) {
+						getButton(idx).getChildByName("back").transform.colorTransform = back;
+					}
+				} else {
+					var prevOver:DisplayObject = getButton(active).getChildByName("backOver");
+					var prevOut:DisplayObject = getButton(active).getChildByName("back");
+					var prevActive:DisplayObject = getButton(active).getChildByName("backActive");
+					prevOut.visible = true;
+					if (prevOver) prevOver.visible = false;
+					if (prevActive) prevActive.visible = false;
+				}
 			}
+			
 			active = idx;
+			
+			if (!swfSkinned) {
+				var overClip:DisplayObject = getButton(idx).getChildByName("backOver");
+				var outClip:DisplayObject = getButton(idx).getChildByName("back");
+				var activeClip:DisplayObject = getButton(idx).getChildByName("backActive");
+				if (activeClip) {
+					activeClip.visible = true;
+					outClip.visible = false;
+					if (overClip) overClip.visible = false;
+				}
+			}
+			
+			
+
 		}
 		
 		
@@ -628,7 +858,9 @@ package com.longtailvideo.jwplayer.view.components {
 			clearInterval(scrollInterval);
 			active = undefined;
 			buildPlaylist(true);
-			resize(background.width, background.height);
+			if (background) {
+				resize(background.width, background.height);
+			}
 		}
 		
 		
@@ -645,7 +877,11 @@ package com.longtailvideo.jwplayer.view.components {
 		
 		
 		private function getButton(id:Number):Sprite {
-			return buttons[id].c as Sprite;
+			if (buttons[id]) {
+				return buttons[id].c as Sprite;
+			} else {
+				return null;
+			}
 		}
 		
 		private function get swfSkinned():Boolean {

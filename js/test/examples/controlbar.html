@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <title>Controlbar</title>
+        <script type="text/javascript" src="../../bin-debug/jwplayer.js">
+        </script>
+        <script type="text/javascript" src="settings.js">
+        </script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            document.write("<h1>" + document.title + "</h1>");
+        </script>
+        <p>
+            This shows all of the rendering options for the controlbar.
+        </p>
+        <p>
+            It contains three players with multiple sources, so it should play back in IE9, FF, Chrome, Safari, and Opera. IE < 9 will simply display "HTML5 Player should replace this".
+        </p>
+		<p>
+			Controlbar top
+		</p>
+        <div height="270" id="player1" width="480">
+            HTML5 Player should replace this
+        </div>
+		<p>
+			Controlbar over
+		</p>
+        <div height="270" id="player2" width="480">
+            HTML5 Player should replace this
+        </div>
+		<p>
+			Controlbar bottom
+		</p>
+        <div height="270" id="player3" width="480">
+            HTML5 Player should replace this
+        </div>
+        <script type="text/javascript">
+            jwplayer("player1").setup({
+            	players: settings.players(window.location.href),
+            	levels: [{
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-486405.mp4"
+            	}, {
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-604476.ogv"
+            	}],
+            	image: "http://content.bitsontherun.com/thumbs/gSzpo2wh-480.jpg",
+            	"controlbar.position": "top"
+            });
+            jwplayer("player2").setup({
+            	players: settings.players(window.location.href),
+            	levels: [{
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-486405.mp4"
+            	}, {
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-604476.ogv"
+            	}],
+            	image: "http://content.bitsontherun.com/thumbs/gSzpo2wh-480.jpg",
+            	"controlbar.position": "over"
+            });
+            jwplayer("player3").setup({
+            	players: settings.players(window.location.href),
+            	levels: [{
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-486405.mp4"
+            	}, {
+            		file: "http://content.bitsontherun.com/videos/gSzpo2wh-604476.ogv"
+            	}],
+            	image: "http://content.bitsontherun.com/thumbs/gSzpo2wh-480.jpg",
+            	"controlbar.position": "bottom"
+            });
+        </script>
+        <h3>HTML code</h3>
+    </body>
+</html>

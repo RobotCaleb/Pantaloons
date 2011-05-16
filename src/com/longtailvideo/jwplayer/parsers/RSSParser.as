@@ -1,5 +1,6 @@
 ﻿package com.longtailvideo.jwplayer.parsers {
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
+	import com.longtailvideo.jwplayer.utils.Strings;
 
 	/**
 	 * Parse an RSS feed and translate it to a feedarray.
@@ -10,9 +11,9 @@
 		public function parse(dat:XML):Array {
 			var arr:Array = new Array();
 			for each (var i:XML in dat.children()) {
-				if (i.localName() == 'channel') {
+				if (i.localName().toLowerCase() == 'channel') {
 					for each (var j:XML in i.children()) {
-						if (j.name() == 'item') {
+						if (j.localName().toLowerCase() == 'item') {
 							arr.push(parseItem(j));
 						}
 					}
@@ -27,7 +28,7 @@
 			for each (var i:XML in obj.children()) {
 				switch (i.localName().toLowerCase()) {
 					case 'enclosure':
-						itm['file'] = i.@url.toString();
+						itm['file'] = Strings.xmlAttribute(i, 'url');
 						break;
 					case 'title':
 						itm['title'] = i.text().toString();

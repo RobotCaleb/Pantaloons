@@ -1,0 +1,328 @@
+<html> 
+<head> 
+<title>JWPlayer HTML5 Failover Test</title> 
+ 
+<script type="text/javascript" src="../bin-debug/jwplayer.js"></script> 
+<script type="text/javascript" src="../../html5/jwplayer.html5.min.js"></script> 
+ 
+</head> 
+ 
+<body> 
+ 
+
+<style type="text/css">
+    .column {
+        float: left;
+        margin: 10px;
+        background-color: #aaaaaa;
+        min-height: 1600px;
+    }
+
+</style>
+
+<p>
+The following embeds will be converted to Flash if the browser can't support any sources.
+</p>
+
+
+
+<div id="column1" class="column">
+
+    <h1>Single file MP4</h1>
+    
+    <div id="vid1"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid1").setup({
+    	   file: 'http://playertest.longtailvideo.com/bunny.mp4',
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Single file OGG</h1>
+    
+    <div id="vid2"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid2").setup({
+    	   file: 'http://playertest.longtailvideo.com/bunny.ogv',
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+     
+    <hr />
+    
+    <h1>Single file WebM</h1>
+    
+    <div id="vid3"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid3").setup({
+    	   file: 'http://playertest.longtailvideo.com/bunny.webm',
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script>
+	
+	<h1>Single file YouTube</h1>
+    
+    <div id="vid3a"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid3a").setup({
+    	   file: 'http://youtube.com/watch?v=IBTE-RoMsvw',
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script>  
+</div>
+
+<div id="column2" class="column">
+
+    <h1>Levels: MP4+Ogg</h1>
+    
+    <div id="vid4"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid4").setup({
+    	   levels: [
+    	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'},
+    	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Levels: Ogg+MP4</h1>
+    
+    <div id="vid5"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid5").setup({
+    	   levels: [
+    	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'},
+    	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+     
+    <hr />
+    
+    <h1>Levels: WebM+Ogg</h1>
+    
+    <div id="vid6"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid6").setup({
+    	   levels: [
+    	       {file: 'http://playertest.longtailvideo.com/bunny.webm'},
+    	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Levels: WebM+MP4</h1>
+    
+    <div id="vid7"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("vid7").setup({
+    	   levels: [
+    	       {file: 'http://playertest.longtailvideo.com/bunny.webm'},
+    	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+</div>
+
+<div id="column3" class="column">
+
+    <h1>Playlist file MP4</h1>
+    
+    <div id="pl1"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl1").setup({
+    	   playlist: [
+    	      {file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Playlist OGG</h1>
+    
+    <div id="pl2"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl2").setup({
+    	   playlist: [
+        	   { file: 'http://playertest.longtailvideo.com/bunny.ogv' }
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+     
+    <hr />
+    
+    <h1>Playlist WebM</h1>
+    
+    <div id="pl3"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl3").setup({
+    	   playlist: [
+        	   { file: 'http://playertest.longtailvideo.com/bunny.webm' }
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script>
+	
+	<h1>Playlist YouTube</h1>
+    
+    <div id="pl3a"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl3a").setup({
+    	   playlist: [
+        	   { file: 'http://youtube.com/watch?v=IBTE-RoMsvw' }
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script>  
+</div>
+
+<div id="column4" class="column">
+
+    <h1>Playlist+Levels: MP4+Ogg</h1>
+    
+    <div id="pl4"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl4").setup({
+    	   playlist: [
+    	     {levels: [
+    	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'},
+    	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'}
+    	     ]}
+    	   ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Playlist+Levels: Ogg+MP4</h1>
+    
+    <div id="pl5"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl5").setup({
+    	   playlist: [
+        	   {levels: [
+        	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'},
+        	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+        	   ]}
+           ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+     
+    <hr />
+    
+    <h1>Playlist+Levels: WebM+Ogg</h1>
+    
+    <div id="pl6"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl6").setup({
+    	   playlist: [
+        	   {levels: [
+        	       {file: 'http://playertest.longtailvideo.com/bunny.webm'},
+        	       {file: 'http://playertest.longtailvideo.com/bunny.ogv'}
+        	   ]}
+           ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+    
+    <hr />
+    
+    <h1>Playlist+Levels: WebM+MP4</h1>
+    
+    <div id="pl7"></div>
+    
+    <script type="text/javascript">
+    	jwplayer("pl7").setup({
+    	   playlist: [
+        	   {levels: [
+        	       {file: 'http://playertest.longtailvideo.com/bunny.webm'},
+        	       {file: 'http://playertest.longtailvideo.com/bunny.mp4'}
+        	   ]}
+           ],
+    	   players: [
+    	       {type:'html5'},
+    	       {type:'flash', src:'../../player.swf'}
+    	   ]
+    	});
+    </script> 
+</div>
+
+ 
+
+</body> 
+</html> 

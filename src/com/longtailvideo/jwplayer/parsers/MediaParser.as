@@ -21,21 +21,33 @@ package com.longtailvideo.jwplayer.parsers {
 		 * @see			RSSParser
 		 **/
 		public static function parseGroup(obj:XML, itm:Object):Object {
+			var ytp:Boolean = false;
+
 			for each (var i:XML in obj.children()) {
 				if (i.namespace().prefix == MediaParser.PREFIX) {
 					switch (i.localName().toLowerCase()) {
 						case 'content':
 							if (!ytp) {
-								itm['file'] = i.@url.toString();
+								itm['file'] = Strings.xmlAttribute(i, 'url');
 							}
 							if (i.@duration.length() > 0) {
-								itm['duration'] = Strings.seconds(i.@duration.toString());
+								itm['duration'] = Strings.seconds(Strings.xmlAttribute(i, 'duration'));
 							}
 							if (i.@start.length() > 0) {
-								itm['start'] = Strings.seconds(i.@start.toString());
+								itm['start'] = Strings.seconds(Strings.xmlAttribute(i, 'start'));
 							}
 							if (i.children().length() > 0) {
 								itm = MediaParser.parseGroup(i, itm);
+							}
+							if (i.@width.length() > 0 || i.@bitrate.length() > 0) {
+								if (!itm.levels) {
+									itm.levels = new Array();
+								}
+								itm.levels.push({
+									width:Strings.xmlAttribute(i, 'width'),
+									bitrate:Strings.xmlAttribute(i, 'bitrate'),
+									file:Strings.xmlAttribute(i, 'url')
+								});
 							}
 							break;
 						case 'title':
@@ -48,15 +60,15 @@ package com.longtailvideo.jwplayer.parsers {
 							itm['tags'] = i.text().toString();
 							break;
 						case 'thumbnail':
-							itm['image'] = i.@url.toString();
+							itm['image'] = Strings.xmlAttribute(i, 'url');
 							break;
 						case 'credit':
 							itm['author'] = i.text().toString();
 							break;
 						case 'player':
 							if (i.@url.indexOf('youtube.com') > 0) {
-								var ytp:Boolean = true;
-								itm['file'] = i.@url.toString();
+								ytp = true;
+								itm['file'] = Strings.xmlAttribute(i, 'url');
 							}
 							break;
 						case 'group':
