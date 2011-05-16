@@ -1,0 +1,17 @@
+<rss version="2.0" xmlns:jwplayer="http://developer.longtailvideo.com/">
+  <channel>
+    <title>EyeSee360</title>
+    <item>
+      <title>YellowBird Video</title>
+      <jwplayer:file>a3</jwplayer:file>
+      <jwplayer:type>rtmp</jwplayer:type>
+      <jwplayer:provider>rtmp</jwplayer:provider>
+      <jwplayer:duration>0</jwplayer:duration>
+      <jwplayer:bufferlength>1</jwplayer:bufferlength>
+      <jwplayer:streamer>rtmp://194.152.42.101/live</jwplayer:streamer>
+	  <jwplayer:ProjectionOverride>true</jwplayer:ProjectionOverride>
+	  <jwplayer:Projection>equirectangular</jwplayer:Projection>
+	  <jwplayer:image>preview.jpeg</image>
+    </item>
+  </channel>
+</rss>
