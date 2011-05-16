@@ -1,0 +1,16 @@
+ <rss version="2.0" xmlns:jwplayer="http://developer.longtailvideo.com/">
+ <channel>
+  <title>EyeSee360</title> 
+ <item>
+  <title>Live Stream</title> 
+  <jwplayer:streamer>rtmp://184.73.242.210/live</jwplayer:streamer>
+  <jwplayer:provider>rtmp</jwplayer:provider>
+  <jwplayer:file>livestream</jwplayer:file> 
+  <jwplayer:projection>equirectangular</jwplayer:projection> 
+  <jwplayer:tiltMin>-50</jwplayer:tiltMin>
+  <jwplayer:tiltMax>50</jwplayer:tiltMax>
+  <jwplayer:panMin>-180</jwplayer:panMin>
+   <jwplayer:panMax>180</jwplayer:panMax>
+  </item>
+  </channel>
+  </rss>
