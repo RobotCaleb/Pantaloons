@@ -46,11 +46,15 @@ package com.longtailvideo.jwplayer.geometry
 			processRawData(rawData);
 		}
 		
-		public function guess(type:String, width:Number, height:Number):void
+		public function guess(projection:Object, width:Number, height:Number):void
 		{	
 			trace('Guessing - Height: ', height, 'Width: ', width)
-			
-			_type = type;
+				
+			if (projection.hasOwnProperty("type")) {
+				_type = projection.type;			
+			} else {
+				_type = Projection.EQUIRECTANGULAR;
+			} 
 			
 			if (_type == Projection.EQUIRECTANGULAR){
 				var dpp:Number = 360.0 / width;
@@ -58,7 +62,7 @@ package com.longtailvideo.jwplayer.geometry
 				if (tiltRange > 180.0) {
 					tiltRange = 180.0
 				}
-					
+				
 				trace('DPP: ', dpp)
 				_tiltMin = -tiltRange/2.0;
 				_tiltMax = tiltRange/2.0;
@@ -74,7 +78,63 @@ package com.longtailvideo.jwplayer.geometry
 				_tiltMax = tiltLim;
 				_panMin = -180.0;
 				_panMax = 180.0;
+			}	
+			
+			/* read in user variables */
+			if (projection.hasOwnProperty("panmax") && projection.hasOwnProperty("panmin")) {
+				_panMax = Number(projection.panmax);
+				_panMin = Number(projection.panmin);
+			} else if (projection.hasOwnProperty("panrange") && projection.hasOwnProperty("panmin")) {
+				_panMax = Number(projection.panmin) + Number(projection.panrange);
+				_panMin = Number(projection.panmin);
+			} else if (projection.hasOwnProperty("panrange") && projection.hasOwnProperty("panmax")) {
+				_panMin = Number(projection.panrange);
+				_panMax = Number(projection.panmax);
+			} else if (projection.hasOwnProperty("panrange")) {
+				_panMin = 0.0;
+				_panMax = Number(projection.panrange);
+			} 
+			
+			/* process the y axis */
+			if (projection.hasOwnProperty("tiltmin") && projection.hasOwnProperty("tiltmax")) {
+				_tiltMax = Number(projection.tiltmax);
+				_tiltMin = Number(projection.tiltmin);
+			} else if (projection.hasOwnProperty("tiltrange") && projection.hasOwnProperty("tiltmin")){
+				_tiltMax = Number(projection.tiltmin) + Number(projection.tiltrange);
+				_tiltMin = Number(projection.tiltmin);
+			} else if (projection.hasOwnProperty("tiltrange") && projection.hasOwnProperty("tiltmax")) {
+				_tiltMin = Number(projection.tiltmax) - Number(projection.tiltrange);
+				_tiltMax = Number(projection.tiltmax);
+			} else if (projection.hasOwnProperty("tiltrange")) {
+				_tiltMin = -1 * ((Number(projection.tiltrange)) / 2.0);
+				_tiltMax = (Number(projection.tiltrange)) / 2.0;
+			} 
+			
+			if (projection.hasOwnProperty("roi")) {
+	
+				/* was it specified based on percentage ...*/
+				var roiString:String = projection.roi;
+				var roiArray:Array = roiString.split(' ');
+				
+				if (roiString.indexOf("%") != -1) {
+					var x:Number = 0;
+					_roiIsPercentage = true;
+					_roi = new Array();
+					for (var element:String in roiArray){
+						/* strip the trailing '%' */
+						_roi[x] = Number(element.substr(0, length-1)) / 100.0;
+						x++;
+					}
+				} else if (roiArray.length >= 4) {
+					_roi = new Array();
+					_roiIsPercentage = false;
+					_roi[0] = Number(roiArray[0]);
+					_roi[1] = Number(roiArray[1]);
+					_roi[2] = Number(roiArray[2]);
+					_roi[3] = Number(roiArray[3]);
+				}
 			}
+			
 		}
 		
 		/* We have to pass in the width and height now because it's really difficult to 

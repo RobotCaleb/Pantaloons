@@ -82,6 +82,7 @@ package com.longtailvideo.jwplayer.media {
 		/** Handles event dispatching **/
 		private var _dispatcher:GlobalEventDispatcher;
 
+		
 		protected var _width:Number;
 		protected var _height:Number;
 
