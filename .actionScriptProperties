@@ -29,6 +29,7 @@
   </compiler>
   <applications>
     <application path="JWPanoPlayer.as"/>
+    <application path="JWPlayer.as"/>
   </applications>
   <modules/>
   <buildCSSFiles/>

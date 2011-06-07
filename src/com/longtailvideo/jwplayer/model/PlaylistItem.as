@@ -16,6 +16,21 @@ package com.longtailvideo.jwplayer.model {
 		public var tags:String			= "";
 		public var title:String			= "";
 		public var provider:String		= "";
+		public var panmin:Number;
+		public var panmax:Number;
+		public var tiltmin:Number;
+		public var tiltmax:Number;
+		public var panrange:Number;
+		public var tiltrange:Number	;
+		public var roi:String;
+		public var verticalfov:Number;
+		public var horizontalfov:Number;
+		public var diagonalfov:Number;
+		public var pan:Number	;
+		public var tilt:Number;
+		public var projectiontype:String ;
+		
+		
 		
 		protected var _file:String			= "";
 		protected var _streamer:String		= "";

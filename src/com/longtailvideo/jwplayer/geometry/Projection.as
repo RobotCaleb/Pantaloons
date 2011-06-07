@@ -50,121 +50,93 @@ package com.longtailvideo.jwplayer.geometry
 		{	
 			trace('Guessing - Height: ', height, 'Width: ', width)
 			
-			_type = projection.projection;
-			
+			if (projection.hasOwnProperty("type")) {
+				_type = projection.type;			
+			} else {
+				_type = Projection.EQUIRECTANGULAR;
+			} 
 			
 			if (_type == Projection.EQUIRECTANGULAR){
 				var dpp:Number = 360.0 / width;
 				var tiltRange:Number = height * dpp;
 				if (tiltRange > 180.0) {
 					tiltRange = 180.0
-				}	
-
-					if (projection.tiltMin){
-						_tiltMin = projection.tiltMin;
-					} else {
-						if (projection.tiltMax) {
-							_tiltMin = projection.tiltMax-(tiltRange);
-						} else {
-							_tiltMin = -tiltRange/2.0;
-						}
-					}
-					if (_tiltMin < -90 || _tiltMin > 90){
-						_tiltMin = -90;
-					}
-					
-					if (projection.tiltMax){
-						_tiltMax = projection.tiltMax;
-					} else {
-						if (projection.tiltMin){
-							_tiltMax = projection.tiltMin+tiltRange;
-						} else {
-							_tiltMax = tiltRange/2.0
-						}
-						 
-					}
-					if (_tiltMax < -90 || _tiltMax > 90){
-						_tiltMax = 90;
-					}
-					if (projection.panMin){
-						_panMin = projection.panMin;
-					} else {
-						if (projection.panMax){
-							_panMin = projection.panMax-tiltRange;
-						} else {
-							_panMin = -tiltLim;
-						}
-					}
-					if (_panMin <-180.0 || _panMin > 180.0) {
-						_panMin = -180;
-					}
-					if (projection.panMax){
-						_panMax = projection.panMax;
-					} else {
-						if (projection.panMin){
-							_panMax = projection.panMin+tiltRange;	
-						} else {
-							_panMax = tiltLim*2;
-						}
-					} 
-					if (_panMax < -180 || _panMax > 180){
-						_panMax = 180;
-					} 
+				}
+				
+				trace('DPP: ', dpp)
+				_tiltMin = -tiltRange/2.0;
+				_tiltMax = tiltRange/2.0;
+				_panMin = 0.0;
+				_panMax = 360.0;
+				trace("PanMin: ", _panMin, "PanMax: ", _panMax, "TiltMin: ", _tiltMin, "TiltMax: ", _tiltMax);
+				
 			} else if (_type == Projection.CYLINDRICAL) {
 				// guess cylindrical, centered on horizon
 				var radius:Number = width / (2 * Math.PI);
 				var tiltLim:Number = R2D * Math.atan2(height / 2, radius);
-				if (projection.tiltMin){
-					_tiltMin = projection.tiltMin;
-				} else {
-					if (projection.tiltMax) {
-						_tiltMin = projection.tiltMax-tiltLim*2;
-					} else {
-						_tiltMin = -tiltLim;
-					}
-				}
-				if (_tiltMin < -90 || _tiltMin > 90){
-					_tiltMin = -90;
-				}
+				_tiltMin = -tiltLim;
+				_tiltMax = tiltLim;
+				_panMin = -180.0;
+				_panMax = 180.0;
+			}	
+			
+			/* read in user variables */
+			if (projection.hasOwnProperty("panmax") && projection.hasOwnProperty("panmin")) {
+				_panMax = Number(projection.panmax);
+				_panMin = Number(projection.panmin);
+			} else if (projection.hasOwnProperty("panrange") && projection.hasOwnProperty("panmin")) {
+				_panMax = Number(projection.panmin) + Number(projection.panrange);
+				_panMin = Number(projection.panmin);
+			} else if (projection.hasOwnProperty("panrange") && projection.hasOwnProperty("panmax")) {
+				_panMin = Number(projection.panrange);
+				_panMax = Number(projection.panmax);
+			} else if (projection.hasOwnProperty("panrange")) {
+				_panMin = 0.0;
+				_panMax = Number(projection.panrange);
+			} 
+			
+			/* process the y axis */
+			if (projection.hasOwnProperty("tiltmin") && projection.hasOwnProperty("tiltmax")) {
+				_tiltMax = Number(projection.tiltmax);
+				_tiltMin = Number(projection.tiltmin);
+			} else if (projection.hasOwnProperty("tiltrange") && projection.hasOwnProperty("tiltmin")){
+				_tiltMax = Number(projection.tiltmin) + Number(projection.tiltrange);
+				_tiltMin = Number(projection.tiltmin);
+			} else if (projection.hasOwnProperty("tiltrange") && projection.hasOwnProperty("tiltmax")) {
+				_tiltMin = Number(projection.tiltmax) - Number(projection.tiltrange);
+				_tiltMax = Number(projection.tiltmax);
+			} else if (projection.hasOwnProperty("tiltrange")) {
+				_tiltMin = -1 * ((Number(projection.tiltrange)) / 2.0);
+				_tiltMax = (Number(projection.tiltrange)) / 2.0;
+			} 
+			
+			if (projection.hasOwnProperty("roi")) {
 				
-				if (projection.tiltMax){
-					_tiltMax = projection.tiltMax;
-				} else {
-					if (projection.tiltMin){
-						_tiltMax = projection.tiltMin+tiltLim*2;
-					} else {
-						_tiltMax = tiltLim;
+				/* was it specified based on percentage ...*/
+				var roiString:String = projection.roi;
+				var roiArray:Array = roiString.split(' ');
+				
+				if (roiString.indexOf("%") != -1) {
+					var x:Number = 0;
+					_roiIsPercentage = true;
+					_roi = new Array();
+					for (var element:String in roiArray){
+						/* strip the trailing '%' */
+						_roi[x] = Number(element.substr(0, length-1)) / 100.0;
+						x++;
 					}
+				} else if (roiArray.length >= 4) {
+					_roi = new Array();
+					_roiIsPercentage = false;
+					_roi[0] = Number(roiArray[0]);
+					_roi[1] = Number(roiArray[1]);
+					_roi[2] = Number(roiArray[2]);
+					_roi[3] = Number(roiArray[3]);
 				}
-				if (_tiltMax < -90 || _tiltMax > 90){
-					_tiltMax = 90;
-				}
-				if (projection.panMin){
-					_panMin = projection.panMin;
-				} else {
-					if (projection.panMax){
-						_panMin = projection.panMax-tiltLim*2;
-					} else {
-						_panMin = -tiltLim;
-					}
-				}
-				if (_panMin <-180.0 || _panMin > 180.0) {
-					_panMin = -180;
-				}
-				if (projection.panMax){
-					_panMax = projection.panMax;
-				} else {
-					if (projection.panMin){
-						_panMax = projection.panMin+tiltLim*2;	
-					} else {
-						_panMax = tiltLim*2;
-					}
-				} 
-				if (_panMax < -180 || _panMax > 180){
-					_panMax = 180;
-				} 
 			}
+			
 		}
+
 		
 		/* We have to pass in the width and height now because it's really difficult to 
 		get the proper width and height of an image/video */

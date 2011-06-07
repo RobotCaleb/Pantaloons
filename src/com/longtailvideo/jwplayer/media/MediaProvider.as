@@ -87,7 +87,6 @@ package com.longtailvideo.jwplayer.media {
 		/** Queue buffer full event if it occurs while the player is paused. **/
 		private var _queuedBufferFull:Boolean;
 		
-		
 		protected var _width:Number;
 		protected var _height:Number;
 		

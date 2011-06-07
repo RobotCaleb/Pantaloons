@@ -39,8 +39,13 @@
             <!-- For version detection, set to min. required Flash Player version, or 0 (or 0.0.0), for no version detection. --> 
             var swfVersionStr = "${version_major}.${version_minor}.${version_revision}";
             <!-- To use express install, set to playerProductInstall.swf, otherwise the empty string. -->
+<<<<<<< HEAD:html-template/history/index.template.html
             var xiSwfUrlStr = "${expressInstallSwf}";
             var flashvars = {file: 'Red31.vwm', provider:'video', skin: 'skin/pantaloons.xml'};
+=======
+            var xiSwfUrlStr = "playerProductInstall.swf";
+            var flashvars = {file: 'Red31.vwm', provider: 'video', verticalFOV:'60', skin: 'skin/pantaloons.xml'};
+>>>>>>> 9f35868... added support for flashvar params:html-template/JWPlayer.html
             var params = {};
             params.quality = "high";
             params.bgcolor = "${bgcolor}";

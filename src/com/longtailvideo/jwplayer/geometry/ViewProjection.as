@@ -42,6 +42,31 @@ package com.longtailvideo.jwplayer.geometry
 			this.verticalFOV = 120;
 		}
 		
+		public function setView(settings:Object):void
+		{
+			if (settings.hasOwnProperty("pan")) {
+				this.pan = Number(settings.pan);
+			}
+			
+			if (settings.hasOwnProperty("tilt")) {
+				this.tilt = Number(settings.tilt);
+			}
+			
+			if (settings.hasOwnProperty("verticalfov")){
+				this.verticalFOV = Number(settings.verticalfov);
+			}
+			
+			if(settings.hasOwnProperty("horizontalfov")){
+				this.horizontalFOV = Number(settings.horizontalfov);
+			}
+			
+			if (settings.hasOwnProperty("diagonalfov")){
+				this.diagonalFOV = Number(settings.diagonalfovw);
+			}
+			
+		}
+		
+		
 		private function didChange():void
 		{
 			var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_PROJECTION_SHIFT);

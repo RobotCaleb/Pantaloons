@@ -17,6 +17,7 @@ package com.longtailvideo.jwplayer.media
 	import flash.display.Loader;
 	import flash.events.Event;
 	import flash.media.Video;
+	import flash.utils.*;
 	
 	public class UnwarpMediaProxy extends MediaProvider
 	{
@@ -25,7 +26,8 @@ package com.longtailvideo.jwplayer.media
 		private var _projector:Projector;
 		private var _currentTime:Number;
 		private var _isPassthrough:Boolean;
-		private var _overrideProjection:Object;
+		private var _externalProjection:Object;
+		private var _externalViewProjection:Object;
 		private var _inputHandler:UnwarpInput;
 		private var _delayedBufferFull:Event;
 		/* when we receive the media, we check to see if it's a vw file.
@@ -36,13 +38,17 @@ package com.longtailvideo.jwplayer.media
 		/* if the bufferfull arrives before we get the metadata, then we have to stop it and 
 		later send it once we get the metadata */
 		
+		private static const  _projectionFlashVars:Array = ["panmin", "panmax", "panrange", "tiltmin", "tiltmax", "tiltrange", "roi", "projectiontype"];
+		private static const _viewProjectionFlashVars:Array = ["pan", "tilt", "verticalfov", "horizontalfov", "diagonalfov"];
+		
+		
 		public function UnwarpMediaProxy(subProvider:MediaProvider)
 		{
 			super('unwarp');
 			_subProvider = subProvider;
 			_currentTime = -1;
 			_isPassthrough = false;
-			_overrideProjection = null;
+			_externalProjection = null;
 			_isVWM = false;
 		}
 	
@@ -60,9 +66,22 @@ package com.longtailvideo.jwplayer.media
 			_timeline = null;
 			_projector = null;
 			_isPassthrough = false;
-			_overrideProjection = null;
+			_externalProjection = null;
+			_externalViewProjection = null;
 			_isVWM = false;
 			_delayedBufferFull = null;
+			
+
+			
+			this.parseFlashVars(itm);
+			
+			_subProvider.addGlobalListener(subProviderListener);
+			_subProvider.load(itm);
+
+		}
+		
+		protected function parseFlashVars(itm:PlaylistItem):void
+		{
 			/*check for the itm's extension */
 			if (itm.file != null && itm.file.indexOf('.')){
 				var extension:String = itm.file.slice(itm.file.indexOf('.')+1);
@@ -71,32 +90,29 @@ package com.longtailvideo.jwplayer.media
 				}
 			}
 			
-			if (itm.projection) 
-			{
-					_overrideProjection = new Object()
-					_overrideProjection.projection = itm.projection;
-					if (itm.tiltMin){
-						_overrideProjection.tiltMin = int(itm.tiltMin);	
-					}		
-					if (itm.tiltMax) {
-						_overrideProjection.tiltMax = int(itm.tiltMax);						
+			var varList:XMLList = describeType(itm)..variable;
+			
+			for(var i:int; i < varList.length(); i++){
+				var param:String = varList[i].@name;
+				if (itm[param]){
+					if (_projectionFlashVars.indexOf(param)>=0) {
+						if (!_externalProjection) {
+							_externalProjection = new Object();
+						}
+						if (param=="projectiontype") {
+							_externalProjection["type"] = itm[param];
+						} else {
+							_externalProjection[param] = itm[param];
+						}
+					} else if (_viewProjectionFlashVars.indexOf(param)>=0) {
+						if (!_externalViewProjection) {
+							_externalViewProjection = new Object();
+						}
+						_externalViewProjection[param] = itm[param];
 					}
-					if (itm.panMin) {
-						_overrideProjection.panMin = int(itm.panMin);
-					}
-					if (itm.panMax) {
-						_overrideProjection.panMax = int(itm.panMax);
-					}
-				
-			}
-			if (!_isVWM && !_overrideProjection)
-			{
-				_isPassthrough = true;			
+				}
 			}
 			
-			_subProvider.addGlobalListener(subProviderListener);
-			_subProvider.load(itm);
-
 		}
 		
 		protected function subProviderListener(e:Event):void
@@ -154,13 +170,13 @@ package com.longtailvideo.jwplayer.media
 				this.media = _subProvider.getRawMedia();
 				mediaRefresh();
 			} else {
-				if (_overrideProjection) 
+				if (_externalProjection) 
 				{		
 					var cue:Object = new Object();
 					_timeline = new Array();
 					cue.duration = 'always';				
 					cue.projection = new Projection();
-					cue.projection.guess(_overrideProjection, h, w);
+					cue.projection.guess(_externalProjection, h, w);
 					_timeline.push(cue);	
 				}
 				
@@ -195,6 +211,12 @@ package com.longtailvideo.jwplayer.media
 		protected function initProjector(projection:Projection):void
 		{
 			var viewProjection:ViewProjection = new ViewProjection();
+			if (_externalViewProjection) {
+				
+				viewProjection.setView(_externalViewProjection);
+			}
+			
+			
 			if (this.width == 0 || this.height == 0){
 				/* just supply some defaults. sometimes we receive the metadata concerning the xmp before we receive the metadata concerning the width and height
 				These same defaults are used by the videoProvider. */
@@ -265,7 +287,7 @@ package com.longtailvideo.jwplayer.media
 				var metadata:Object = data.metadata;
 				if (metadata.hasOwnProperty('type')) {
 					if (metadata.type == "xmp"){
-						if (_overrideProjection){
+						if (_externalProjection){
 							return
 						}
 						try {
@@ -295,8 +317,8 @@ package com.longtailvideo.jwplayer.media
 						/* we have to redo everything */
 						var h = getMediaWidth();
 						var w = getMediaHeight();
- 						if (_overrideProjection){
-							_timeline[_currentTime].projection.guess(_overrideProjection, w, h);
+ 						if (_externalProjection){
+							_timeline[_currentTime].projection.guess(_externalProjection, w, h);
 						}
 						_projector.switchSourceProjection(_timeline[_currentTime].projection)
 					}
@@ -353,7 +375,7 @@ package com.longtailvideo.jwplayer.media
 		
 		protected function parseXmp(info:Object):void
 		{
-			if (!_overrideProjection && _projector)
+			if (!_externalProjection && _projector)
 			{
 				return;
 			}
