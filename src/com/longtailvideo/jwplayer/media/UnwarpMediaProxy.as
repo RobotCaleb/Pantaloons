@@ -126,8 +126,8 @@ package com.longtailvideo.jwplayer.media
 					dispatchEvent(e);
 					break;
 				case MediaEvent.JWPLAYER_MEDIA_LOADED:
-					subLoadedCallback(e);
-					break;
+					//subLoadedCallback(e);
+					//break;
 				case MediaEvent.JWPLAYER_MEDIA_TIME:
 					updateTime(e);
 					this.dispatchEvent(e);
@@ -138,7 +138,8 @@ package com.longtailvideo.jwplayer.media
 					then dispatch the event after the XMP has been loaded */
 					if (_isPassthrough){
 						this.dispatchEvent(e);
-					} else if (_timeline!=null){
+					} else if (_timeline!=null || _externalProjection){
+						bufferFullCallback(e);
 						this.dispatchEvent(e);
 					} else if (_timeline==null){
 						_delayedBufferFull = e;
@@ -161,7 +162,7 @@ package com.longtailvideo.jwplayer.media
 			
 		}
 		
-		protected function subLoadedCallback(data:Object):void
+		protected function bufferFullCallback(data:Object):void
 		{
 			var h:Number = getMediaWidth();
 			var w:Number = getMediaHeight();
@@ -182,14 +183,6 @@ package com.longtailvideo.jwplayer.media
 				
 				if (!_projector  && _timeline){
 					initProjector(_timeline[0].projection);
-					
-					_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
-					this.media = _projector.media;
-					this.resize(_width, _height);
-					_inputHandler = new UnwarpInput(_projector);
-					var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
-					event.data = _inputHandler;
-					dispatchEvent(event);
 				}
 			}
 		}
@@ -225,6 +218,16 @@ package com.longtailvideo.jwplayer.media
 			}
 			_projector = new Projector(_subProvider.getRawMedia(), projection, viewProjection, _width, _height);
 			
+			_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
+			this.media = _projector.media;
+			this.resize(_width, _height);
+			mediaRefresh();
+			_inputHandler = new UnwarpInput(_projector);
+			var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
+			event.data = _inputHandler;
+			dispatchEvent(event);
+			
+			
 		}
 		
 		private function enterFrame(e:Event):void {			
@@ -251,7 +254,7 @@ package com.longtailvideo.jwplayer.media
 		protected function updateTime(currentTime:Object):void
 		{
 			
-			if (_isPassthrough)
+			if (_isPassthrough || !_timeline)
 			{
 				return;
 			}
@@ -297,14 +300,7 @@ package com.longtailvideo.jwplayer.media
 						}
 						if (!_projector  && _timeline){
 							initProjector(_timeline[0].projection);
-							_projector.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, forwardEvent);
-							this.media = _projector.media;
-							this.resize(_width, _height);
-							mediaRefresh();
-							_inputHandler = new UnwarpInput(_projector);
-							var event:ProjectionEvent = new ProjectionEvent(ProjectionEvent.VIEW_INPUT_HANDLER);
-							event.data = _inputHandler;
-							dispatchEvent(event);
+
 						}
 						if (_delayedBufferFull != null){
 							dispatchEvent(_delayedBufferFull);
