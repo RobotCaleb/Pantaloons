@@ -57,7 +57,7 @@ public class MouseVelocityController
 		_media = media;
 		
 		_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
-		_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);
+		/*_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);*/
 		
 		_projector.addEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
 	}
@@ -125,7 +125,7 @@ public class MouseVelocityController
 			
 			_media.removeEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
 			_stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
-			_media.removeEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);
+			/*_media.removeEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);*/
 			
 			_projector.removeEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
 			
@@ -135,7 +135,7 @@ public class MouseVelocityController
 		{
 			_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
 			_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
-			_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);	
+			/*_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);*/	
 		}
 		
 	}
