@@ -110,9 +110,8 @@ package com.longtailvideo.jwplayer.geometry
 				_tiltMax = (Number(projection.tiltrange)) / 2.0;
 			} 
 			
-			if (projection.hasOwnProperty("roi")) {
+			/*if (projection.hasOwnProperty("roi")) {
 	
-				/* was it specified based on percentage ...*/
 				var roiString:String = projection.roi;
 				var roiArray:Array = roiString.split(' ');
 				
@@ -121,7 +120,6 @@ package com.longtailvideo.jwplayer.geometry
 					_roiIsPercentage = true;
 					_roi = new Array();
 					for (var element:String in roiArray){
-						/* strip the trailing '%' */
 						_roi[x] = Number(element.substr(0, length-1)) / 100.0;
 						x++;
 					}
@@ -133,7 +131,7 @@ package com.longtailvideo.jwplayer.geometry
 					_roi[2] = Number(roiArray[2]);
 					_roi[3] = Number(roiArray[3]);
 				}
-			}
+			}*/
 			
 		}
 		
@@ -208,11 +206,11 @@ package com.longtailvideo.jwplayer.geometry
 				_panMax = rawData.@proj::panMax;
 				_panMin = rawData.@proj::panMin;
 			} else if (rawData.@proj::panRange.length() && rawData.@proj::panMin.length()) {
-				_panMax = rawData.@proj::panMin + rawData.@proj::panRange;
+				_panMax = Number(rawData.@proj::panMin) + Number(rawData.@proj::panRange);
 				_panMin = rawData.@proj::panMin;
 			} else if (rawData.@proj::panRange.length() && rawData.@proj::panMax.length()) {
-				_panMin = rawData.@proj::panMax - rawData.@proj::panRange;
-				_panMax = rawData.@proj::panMax;
+				_panMin = Number(rawData.@proj::panMax) - Number(rawData.@proj::panRange);
+				_panMax = Number(rawData.@proj::panMax);
 			} else if (rawData.@proj::panRange.length()) {
 				_panMin = 0.0;
 				_panMax = rawData.@proj::panRange;
@@ -223,19 +221,22 @@ package com.longtailvideo.jwplayer.geometry
 				_tiltMax = rawData.@proj::tiltMax;
 				_tiltMin = rawData.@proj::tiltMin;
 			} else if (rawData.@proj::tiltRange.length() && rawData.@proj::tiltMin.length()) {
-				_tiltMax = rawData.@proj::tiltMin + rawData.@proj::tiltRange;
+				var tiltRange:Number = rawData.@proj::tiltRange;
 				_tiltMin = rawData.@proj::tiltMin;
+				_tiltMax = _tiltMin+tiltRange;
+
 			} else if (rawData.@proj::tiltRange.length() && rawData.@proj::tiltMax.length()) {
-				_tiltMin = rawData.@proj::tiltMax - rawData.@proj::tiltRange;
+				var tiltRange:Number = rawData.@proj::tiltRange;
 				_tiltMax = rawData.@proj::tiltMax;
+				_tiltMin = _tiltMax - tiltRange;
 			} else if (rawData.@proj::tiltRange.length()) {
-				_tiltMin = -1 * ((rawData.@proj::tiltRange) / 2.0);
-				_tiltMax = (rawData.@proj::tiltRange) / 2.0;
+				_tiltMin = -1 * ((Number(rawData.@proj::tiltRange)) / 2.0);
+				_tiltMax = (Number(rawData.@proj::tiltRange)) / 2.0;
 			} 
-			if (rawData.@proj::roi.length()) {
+			/*if (rawData.@proj::roi.length()) {
 				
 				
-				/* was it specified based on percentage ...*/
+
 				var roiString:String = rawData.@proj::roi;
 				var roiArray:Array = roiString.split(' ');
 				
@@ -244,7 +245,7 @@ package com.longtailvideo.jwplayer.geometry
 					_roiIsPercentage = true;
 					_roi = new Array();
 					for (var element:String in roiArray){
-						/* strip the trailing '%' */
+
 						_roi[x] = Number(element.substr(0, length-1)) / 100.0;
 						x++;
 					}
@@ -255,9 +256,9 @@ package com.longtailvideo.jwplayer.geometry
 						_roi[1] = Number(roiArray[1]);
 						_roi[2] = Number(roiArray[2]);
 						_roi[3] = Number(roiArray[3]);
-					}
 				}
-			}
-	
+			}*/
 		}
+	
+	}
 }
