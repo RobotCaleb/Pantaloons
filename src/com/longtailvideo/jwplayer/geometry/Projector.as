@@ -19,8 +19,6 @@ package com.longtailvideo.jwplayer.geometry
 	import flash.media.Video;
 	import flash.utils.getTimer;
 
-	import org.osmf.layout.AbsoluteLayoutFacet;
-
 	public class Projector extends EventDispatcher
 	{
 		/* the original media we are supposed to transform */
