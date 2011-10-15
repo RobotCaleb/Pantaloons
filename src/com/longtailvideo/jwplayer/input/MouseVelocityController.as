@@ -20,11 +20,14 @@ package com.longtailvideo.jwplayer.input
 	
 	public class MouseVelocityController
 	{
+		
+		//	Custom cursor
 		[Embed (source="cursor_closedhand.png" )]
 		public static const GraphicClosedHandCursor:Class;
-		
 		[Embed (source="cursor_openhand.png" )]
 		public static const GraphicOpenHandCursor:Class;
+		private var _hasTerminated:Boolean;
+		
 		
 		private var _media:IDisplayComponent;
 		private var _projector:Projector;
@@ -32,7 +35,6 @@ package com.longtailvideo.jwplayer.input
 		private var _panScale:Point;
 		private var _viewScale:Point;
 		private var _stage:Stage;
-		private var _hasTerminated:Boolean;
 		
 		public function MouseVelocityController(projector:Projector)
 		{
@@ -42,7 +44,8 @@ package com.longtailvideo.jwplayer.input
 			_panScale = new Point(.003, .003);
 			_viewScale = new Point(1.0, 1.0);
 			
-			/* Custom cursors setup */
+			
+			// Custom cursors setup 
 			var cursorClosedBitmapData:Vector.<BitmapData> = new Vector.<BitmapData>(1, true);
 			var cursorClosedBitmap:Bitmap = new GraphicClosedHandCursor();
 			cursorClosedBitmapData[0] = cursorClosedBitmap.bitmapData;
@@ -62,6 +65,7 @@ package com.longtailvideo.jwplayer.input
 			Mouse.registerCursor("OpenHand", cursorOpenData);
 			
 			_hasTerminated = false;
+			
 		}
 		
 		private function projectionSwitch():void
@@ -84,12 +88,15 @@ package com.longtailvideo.jwplayer.input
 			_media = media;
 			
 			_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
+			_projector.addEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
 			/*_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);*/
-			_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseMediaDown);
-			_media.addEventListener(MouseEvent.MOUSE_UP, mouseMediaUp);
+			
+			
+			//	Custom cursor listeners
+			//_media.addEventListener(MouseEvent.MOUSE_UP, mouseMediaUp);
 			_media.addEventListener(MouseEvent.ROLL_OVER, mouseMediaRollOver);
 			_media.addEventListener(MouseEvent.ROLL_OUT, mouseMediaRollOut);
-			_projector.addEventListener(ProjectionEvent.SOURCE_PROJECTION_SWITCH, projectionSwitch);
+			
 		}
 		
 		private function mouseDown(e:MouseEvent):void
@@ -104,11 +111,18 @@ package com.longtailvideo.jwplayer.input
 				_projector.verticalFOV);
 			_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 			_stage.addEventListener(Event.MOUSE_LEAVE, mouseLeave); // Stop the rotation when mouse is out of the movie clip
+			
+			/*
+			//	Custom cursor
+			Mouse.cursor = "ClosedHand";
+			*/
 		}
 		
+		
+		//	Custom cursor functions
 		private function mouseMediaRollOver(e:MouseEvent):void
 		{
-			Mouse.cursor = "OpenHand";
+			Mouse.cursor = "hand";//"OpenHand";
 		}
 		
 		private function mouseMediaRollOut(e:MouseEvent):void
@@ -122,7 +136,11 @@ package com.longtailvideo.jwplayer.input
 			{
 				Mouse.cursor = flash.ui.MouseCursor.AUTO;
 			}
-			else if (e.buttonDown)
+			else
+			{
+				Mouse.cursor = "hand";
+			}
+/*			else if (e.buttonDown)
 			{
 				Mouse.cursor = "ClosedHand";
 			}
@@ -130,17 +148,14 @@ package com.longtailvideo.jwplayer.input
 			{
 				Mouse.cursor = "OpenHand";
 			}
+			*/
 		}
-		
-		private function mouseMediaDown(e:MouseEvent):void
-		{
-			Mouse.cursor = "ClosedHand";
-		}
-		
+		/*
 		private function mouseMediaUp(e:MouseEvent):void
 		{
 			Mouse.cursor = "OpenHand";
 		}
+		*/
 		
 		private function mouseUp(e:MouseEvent):void
 		{
@@ -182,8 +197,11 @@ package com.longtailvideo.jwplayer.input
 		
 		public function terminate():void
 		{
+			
+			//	Custom cursor
 			_hasTerminated = true;
 			Mouse.cursor = flash.ui.MouseCursor.AUTO;
+			
 			
 			_projector.tiltVelocity = 0;
 			_projector.panVelocity = 0;
@@ -199,8 +217,10 @@ package com.longtailvideo.jwplayer.input
 		
 		public function resume():void
 		{
+			//	Custom cursor	
 			if (_hasTerminated)
-				Mouse.cursor = "OpenHand";
+				Mouse.cursor = "hand";//"OpenHand";
+			
 			_media.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
 			_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
 			/*_media.addEventListener(MouseEvent.MOUSE_WHEEL, mouseWheel);*/	
