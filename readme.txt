@@ -48,7 +48,7 @@ To use the pantaloons player, you will need the following things:
 
 - A panoramic video
 - A webserver you can host files on
-- A copy of the pantaloons player. You can download the pantaloons player package at https://github.com/downloads/sditmore/Pantaloons/PantaloonsRelease.zip
+- A copy of the pantaloons player. You can download the pantaloons player package at https://github.com/EyeSee360/Pantaloons/downloads
 
 When you've downloaded the player, unzip the contents. Inside you should see the following files: 
  
@@ -160,7 +160,7 @@ Most additional configuration can be done by looking at JWPlayer guide: http://w
 
 --- Contact ---
 
-For issues, problems or feedback please use the github: https://github.com/sditmore/Pantaloons. Or contact me at sditmore@eyesee360.com.
+For issues, problems or feedback please use the github: https://github.com/EyeSee360/Pantaloons. Or contact sditmore@eyesee360.com.
 
 
 --- Licensing ---
