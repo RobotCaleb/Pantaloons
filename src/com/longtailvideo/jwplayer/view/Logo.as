@@ -23,7 +23,7 @@ package com.longtailvideo.jwplayer.view {
 		protected var defaults:Object = {
 			prefix: "http://media.eyesee360.com", 
 			file: "FlashPlayerLogo.png", 
-			link: "http://www.eyesee360.com/", 
+			link: "http://www.gopano.com/", 
 			margin: 8, 
 			out: 0.5, 
 			over: 1, 
