@@ -36,7 +36,7 @@ To build the player in Flash Builder:
 2. Select 'New Actionscript Project'
 3. Under 'default location', select the Pantaloons folder
 4. Click Next
-5. Under Main Application File, select 'JWPanoPlayer.as'
+5. Under Main Application File, select 'JWPlayer.as'
 6. Click 'Finish'
 7. You can now use project normally.
 
