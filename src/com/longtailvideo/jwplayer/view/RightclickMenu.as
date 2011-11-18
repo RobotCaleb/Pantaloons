@@ -34,6 +34,8 @@ package com.longtailvideo.jwplayer.view {
 		protected var fullscreen:ContextMenuItem;
 		/** Stretching menu item **/
 		protected var stretching:ContextMenuItem;
+		/** Go to gopano.com menu item **/
+		protected var goto: ContextMenuItem;
 	
 		/** Constructor. **/
 		public function RightclickMenu(player:IPlayer, clip:MovieClip) {
@@ -62,6 +64,8 @@ package com.longtailvideo.jwplayer.view {
 			addItem(stretching, stretchHandler);
 			setAboutText();
 			addItem(about, aboutHandler);
+			goto = new ContextMenuItem("Go to GoPano.com");
+			addItem(goto, gotoHanlder);
 			if (Capabilities.isDebugger == true) {
 				debug = new ContextMenuItem('Logging to ' + _player.config.debug + '...');
 				addItem(debug, debugHandler);
@@ -100,6 +104,11 @@ package com.longtailvideo.jwplayer.view {
 			_player.config.stretching = arr[idx];
 			stretching.caption = 'Stretching is ' + arr[idx] + '...';
 			dispatchEvent(new ViewEvent(ViewEvent.JWPLAYER_VIEW_REDRAW));
+		}
+		
+		/** Go to gopano.com **/
+		protected function gotoHanlder(ent:ContextMenuEvent):void{
+			navigateToURL(new URLRequest('http://www.gopano.com'), '_blank');
 		}
 		
 		protected function setCookie(name:String, value:*):void {

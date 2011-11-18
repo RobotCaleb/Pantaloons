@@ -127,6 +127,7 @@ package com.longtailvideo.jwplayer.geometry
 			syncView();
 		}
 		
+		/* this is called when the view projection shifts*/
 		protected function updateView():void
 		{
 			/* this is the first time the function has been called */
@@ -256,20 +257,22 @@ package com.longtailvideo.jwplayer.geometry
 		/*prepares the destination bitmap (_projectedMedia) */
 		protected function syncDest():void
 		{
+			var mw:Number;
+			var mh:Number;
 			if (_width > _maxShaderWidth)
 			{
 				_shaderWidth = _maxShaderWidth;
 				_shaderHeight = int(((_maxShaderWidth/_width) * _height));
-				var mw:Number = _shaderWidth % 4;
-				var mh:Number = _shaderHeight % 4;
+				mw = _shaderWidth % 4;
+				mh = _shaderHeight % 4;
 				_shaderWidth += (mw) ? 4-mw : 0; 
 				_shaderHeight += (mh) ? 4-mh : 0;
 				
 			} else {
 				_shaderWidth = _width;
 				_shaderHeight = _height;
-				var mw:Number = _width % 4;
-				var mh:Number = _height % 4;
+				mw = _width % 4;
+				mh = _height % 4;
 				_shaderWidth += (mw) ? 4-mw : 0; 
 				_shaderHeight += (mh) ? 4-mh : 0;
 			}

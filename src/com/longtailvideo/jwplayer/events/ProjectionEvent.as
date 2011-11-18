@@ -24,7 +24,7 @@ package com.longtailvideo.jwplayer.events
 		
 		public override function clone():Event
 		{
-			var copy = new ProjectionEvent(type, message);
+			var copy:ProjectionEvent = new ProjectionEvent(type, message);
 			copy.data = this.data;
 			return copy;
 		}

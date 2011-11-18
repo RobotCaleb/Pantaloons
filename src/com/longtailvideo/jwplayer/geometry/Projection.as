@@ -217,16 +217,17 @@ package com.longtailvideo.jwplayer.geometry
 			} 
 
 			/* process the y axis */
+			var tiltRange:Number;
 			if (rawData.@proj::tiltMin.length() && rawData.@proj::tiltMax.length()) {
 				_tiltMax = rawData.@proj::tiltMax;
 				_tiltMin = rawData.@proj::tiltMin;
 			} else if (rawData.@proj::tiltRange.length() && rawData.@proj::tiltMin.length()) {
-				var tiltRange:Number = rawData.@proj::tiltRange;
+				tiltRange = rawData.@proj::tiltRange;
 				_tiltMin = rawData.@proj::tiltMin;
 				_tiltMax = _tiltMin+tiltRange;
 
 			} else if (rawData.@proj::tiltRange.length() && rawData.@proj::tiltMax.length()) {
-				var tiltRange:Number = rawData.@proj::tiltRange;
+				tiltRange = rawData.@proj::tiltRange;
 				_tiltMax = rawData.@proj::tiltMax;
 				_tiltMin = _tiltMax - tiltRange;
 			} else if (rawData.@proj::tiltRange.length()) {

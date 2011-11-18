@@ -60,7 +60,7 @@ package com.longtailvideo.jwplayer.media
 		}
 		
 		
-		override public function load(itm:PlaylistItem):void 
+		public override function load(itm:PlaylistItem):void 
 		{
 			
 			setState(PlayerState.BUFFERING);
@@ -337,8 +337,8 @@ package com.longtailvideo.jwplayer.media
 					/* video size was found... so we need to change a few things */
 					if (_projector && _timeline){
 						/* we have to redo everything */
-						var h = getMediaWidth();
-						var w = getMediaHeight();
+						var h: int = getMediaWidth();
+						var w: int = getMediaHeight();
  						if (_externalProjection){
 							_timeline[_currentTime].projection.guess(_externalProjection, w, h);
 						}
@@ -424,7 +424,7 @@ package com.longtailvideo.jwplayer.media
 			} else {
 				var x:Number = 0;
 				_timeline = new Array();
-				_timeline = new Array();
+
 				for each (var it:XML in xmpXML.rdf::RDF.rdf::Description.xmpDM::Tracks.rdf::Bag.rdf::li) {
 						
 					cue = new Object();
@@ -474,14 +474,14 @@ package com.longtailvideo.jwplayer.media
 			super.resize(width,height);
 		}
 	
-		override public function pause():void {
+		public override function pause():void {
 			_subProvider.pause();
 			super.pause();
 		}
 		
 		
 		/** Resume playback of the_item. **/
-		override public function play():void {
+		public override function play():void {
 			
 			_subProvider.play();
 			if (_inputHandler)
@@ -496,7 +496,7 @@ package com.longtailvideo.jwplayer.media
 		}
 		
 		/** Seek to a certain _position in the_item. **/
-		override public function seek(pos:Number):void {
+		public override function seek(pos:Number):void {
 			_subProvider.seek(pos);
 			if (_timeline){
 				updateTime(_subProvider.getTime());
@@ -506,7 +506,7 @@ package com.longtailvideo.jwplayer.media
 		
 		
 		/** Stop the image _postitionInterval. **/
-		override public function stop():void {
+		public override function stop():void {
 			_subProvider.stop();
 			_inputHandler.terminate();
 			
@@ -530,7 +530,7 @@ package com.longtailvideo.jwplayer.media
 			
 		}
 	
-		override public function setVolume(vol:Number):void {
+		public override function setVolume(vol:Number):void {
 			_subProvider.setVolume(vol);
 			super.setVolume(vol);
 		}
