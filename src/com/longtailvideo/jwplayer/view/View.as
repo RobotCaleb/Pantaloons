@@ -25,7 +25,6 @@ package com.longtailvideo.jwplayer.view {
 	import com.longtailvideo.jwplayer.view.interfaces.IPlaylistComponent;
 	import com.longtailvideo.jwplayer.view.interfaces.ISkin;
 	
-	import flash.geom.Rectangle;
 	import flash.display.Bitmap;
 	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
@@ -36,6 +35,9 @@ package com.longtailvideo.jwplayer.view {
 	import flash.display.StageScaleMode;
 	import flash.events.ErrorEvent;
 	import flash.events.Event;
+	import flash.geom.Rectangle;
+	import flash.utils.clearInterval;
+	import flash.utils.setInterval;
 	
 	import flashx.undo.UndoManager;
 
@@ -57,6 +59,11 @@ package com.longtailvideo.jwplayer.view {
 		protected var _logoLayer:MovieClip;
 		protected var _pluginsLayer:MovieClip;
 		protected var _plugins:Object;
+		protected var _tipLayer:MovieClip;
+		
+		[Embed(source="../../../../../assets/images/click_and_drag_tip.png")]
+		protected var Tip:Class;
+		protected var _tip:DisplayObject;
 
 		protected var _displayMasker:MovieClip;
 
@@ -73,6 +80,8 @@ package com.longtailvideo.jwplayer.view {
 
 		protected var loaderScreen:Sprite;
 		protected var loaderAnim:DisplayObject;
+		
+		private var _intervalID:uint;
 
 
 		public function View(player:IPlayer, model:Model) {
@@ -112,6 +121,7 @@ package com.longtailvideo.jwplayer.view {
 
 			loaderAnim.x = (RootReference.stage.stageWidth - loaderAnim.width) / 2;
 			loaderAnim.y = (RootReference.stage.stageHeight - loaderAnim.height) / 2;
+	
 		}
 
 
@@ -198,8 +208,19 @@ package com.longtailvideo.jwplayer.view {
 			_plugins = {};
 			
 			setupLogo();
+			
+			setupTip();
 		}
 		
+		private function setupTip(): void{
+			_tipLayer = setupLayer("tip", 3);
+			_tip = new Tip() as DisplayObject;
+			_tipLayer.addChild(_tip);
+			_tip.x = (RootReference.stage.stageWidth - _tipLayer.width) / 2;
+			_tip.y = (RootReference.stage.stageHeight - _tipLayer.height) / 2;	
+			_tipLayer.visible = false;
+			
+		}
 		protected function setupLogo():void {
 			_logoLayer = setupLayer("logo", 5);
 			_logo = new Logo(_player);
@@ -492,12 +513,28 @@ package com.longtailvideo.jwplayer.view {
 					if (_model.media.display) {
 						_imageLayer.visible = false;
 						_mediaLayer.visible = true;
+						animateTipDisplay();
 					}
 					_logoLayer.visible = true;
 					break;
 			}
 		}
-
+		
+		
+		private function animateTipDisplay(): void{
+			_tipLayer.visible = true;
+			_intervalID = setInterval(fadeOutTip, 50);
+		}
+		
+		private function fadeOutTip(alpha:Number=0): void{
+			if (_tipLayer.alpha <= alpha){
+				_tipLayer.visible = false;
+				clearInterval(_intervalID);
+			}else{
+				_tipLayer.alpha -= 0.01;
+			}
+			
+		}
 
 		protected function forward(evt:Event):void {
 			if (evt is PlayerEvent)
