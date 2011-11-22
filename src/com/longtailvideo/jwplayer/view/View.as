@@ -14,6 +14,7 @@ package com.longtailvideo.jwplayer.view {
 	import com.longtailvideo.jwplayer.plugins.IPlugin;
 	import com.longtailvideo.jwplayer.plugins.PluginConfig;
 	import com.longtailvideo.jwplayer.utils.AssetLoader;
+	import com.longtailvideo.jwplayer.utils.Cookie;
 	import com.longtailvideo.jwplayer.utils.Draw;
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.RootReference;
@@ -82,6 +83,8 @@ package com.longtailvideo.jwplayer.view {
 		protected var loaderAnim:DisplayObject;
 		
 		private var _intervalID:uint;
+		
+		protected static var GOPANO_PLAYER_LOADING_FIRST_TIME_COOKIE: String = "GOPANO_PLAYER_LOADING_FIRST_TIME_COOKIE";
 
 
 		public function View(player:IPlayer, model:Model) {
@@ -513,7 +516,7 @@ package com.longtailvideo.jwplayer.view {
 					if (_model.media.display) {
 						_imageLayer.visible = false;
 						_mediaLayer.visible = true;
-						animateTipDisplay();
+						displayTip();
 					}
 					_logoLayer.visible = true;
 					break;
@@ -521,9 +524,12 @@ package com.longtailvideo.jwplayer.view {
 		}
 		
 		
-		private function animateTipDisplay(): void{
-			_tipLayer.visible = true;
-			_intervalID = setInterval(fadeOutTip, 50);
+		private function displayTip(): void{
+			if (Cookie.getCookie(GOPANO_PLAYER_LOADING_FIRST_TIME_COOKIE) == null){
+				_tipLayer.visible = true;
+				_intervalID = setInterval(fadeOutTip, 50);
+				Cookie.setCookie(GOPANO_PLAYER_LOADING_FIRST_TIME_COOKIE, "true", 365, "/");
+			};
 		}
 		
 		private function fadeOutTip(alpha:Number=0): void{
