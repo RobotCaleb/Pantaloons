@@ -64,6 +64,12 @@ package com.longtailvideo.jwplayer.view.interfaces {
 	 * @eventType com.longtailvideo.jwplayer.events.ViewEvent.JWPLAYER_VIEW_SEEK
 	 */
 	[Event(name="jwPlayerViewSeek", type = "com.longtailvideo.jwplayer.events.ViewEvent")]
+	/**
+	 * Sent when the user requests the player set its cylindrical view to the given value
+	 *
+	 * @eventType com.longtailvideo.jwplayer.events.ViewEvent.JWPLAYER_VIEW_CYLINDRICAL_VIEW
+	 */
+	[Event(name="jwPlayerViewProjection", type="com.longtailvideo.jwplayer.events.ViewEvent")]
 
 	public interface IControlbarComponent extends IPlayerComponent {
 		function addButton(icon:DisplayObject, name:String, handler:Function = null):MovieClip;

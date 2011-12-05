@@ -3,6 +3,7 @@ package com.longtailvideo.jwplayer.model {
 	import com.longtailvideo.jwplayer.events.MediaEvent;
 	import com.longtailvideo.jwplayer.events.PlayerEvent;
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
+	import com.longtailvideo.jwplayer.events.ProjectionEvent;
 	import com.longtailvideo.jwplayer.media.HTTPMediaProvider;
 	import com.longtailvideo.jwplayer.media.ImageMediaProvider;
 	import com.longtailvideo.jwplayer.media.MediaProvider;
@@ -138,6 +139,16 @@ package com.longtailvideo.jwplayer.model {
 		public function set mute(b:Boolean):void {
 			_config.mute = b;
 			_currentMedia.mute(b);
+		}
+		
+		public function get viewProjectionType():String {
+			return _config.viewProjectionType;
+		}
+		
+		public function set viewProjectionType(t:String):void{
+			_config.viewProjectionType = t;
+//			forwardEvents(new ProjectionEvent(ProjectionEvent.VIEW_PROJECTION_SWITCH));
+			_currentMedia.switchDestProjection();
 		}
 
 		public function setupMediaProviders():void {

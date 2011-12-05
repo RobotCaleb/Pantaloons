@@ -5,7 +5,7 @@ package com.longtailvideo.jwplayer.player {
 	import com.longtailvideo.jwplayer.view.IPlayerComponents;
 	import com.longtailvideo.jwplayer.view.interfaces.IPlayerComponent;
 	import com.longtailvideo.jwplayer.view.interfaces.ISkin;
-
+	
 	import flash.events.IEventDispatcher;
 
 
@@ -74,5 +74,8 @@ package com.longtailvideo.jwplayer.player {
 		function link(index:Number=NaN):Boolean;
 		function get controls():IPlayerComponents;
 		function overrideComponent(plugin:IPlayerComponent):void
+			
+	    function get viewProjectionType():String;
+		function set viewProjectionType(type:String):void;
 	}
 }

@@ -110,6 +110,7 @@ package com.longtailvideo.jwplayer.controller {
 			_view.addEventListener(ViewEvent.JWPLAYER_VIEW_FULLSCREEN, fullscreenHandler);
 			_view.addEventListener(ViewEvent.JWPLAYER_VIEW_LOAD, loadHandler);
 			_view.addEventListener(ViewEvent.JWPLAYER_VIEW_REDRAW, redrawHandler);
+			_view.addEventListener(ViewEvent.JWPLAYER_VIEW_PROJECTION, viewProjectionHandler);
 		}
 
 		protected function playHandler(evt:ViewEvent):void { play(); }
@@ -123,6 +124,7 @@ package com.longtailvideo.jwplayer.controller {
 		protected function fullscreenHandler(evt:ViewEvent):void { fullscreen(evt.data); }
 		protected function loadHandler(evt:ViewEvent):void { load(evt.data); }
 		protected function redrawHandler(evt:ViewEvent):void { redraw(); }
+		protected function viewProjectionHandler(evt:ViewEvent):void{ viewProjection(evt.data); }
 
 
 		protected function setupComplete(evt:Event):void {
@@ -486,7 +488,10 @@ package com.longtailvideo.jwplayer.controller {
 			}
 			return false;
 		}
-
+	
+		public function viewProjection(type:String):void{
+			_model.viewProjectionType = type;
+		}
 
 		protected function loadPlaylistItem(item:PlaylistItem):Boolean {
 			if (!_model.playlist.contains(item)) {

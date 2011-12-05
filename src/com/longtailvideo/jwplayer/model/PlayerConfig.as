@@ -4,6 +4,7 @@ package com.longtailvideo.jwplayer.model {
 	import com.longtailvideo.jwplayer.utils.Logger;
 	import com.longtailvideo.jwplayer.utils.Strings;
 	import com.longtailvideo.jwplayer.utils.TypeChecker;
+	import com.longtailvideo.jwplayer.geometry.Projection;
 	
 	import flash.events.EventDispatcher;
 
@@ -52,6 +53,8 @@ package com.longtailvideo.jwplayer.model {
 		
 		protected var _playerready:String		= "";
 		protected var _debug:String			= Logger.NONE;
+		
+		protected var _viewProjectionType:String = Projection.RECTILINEAR;
 		
 		public function PlayerConfig():void {
 			controlbar = _controlbar;
@@ -328,6 +331,9 @@ package com.longtailvideo.jwplayer.model {
 		/** Startup volume of the player. Can be 0 to 100. Is saved in a cookie. @default 90 **/
 		public function get volume():Number { return _volume; }
 		public function set volume(x:Number):void { _volume = x; }
+		
+		public function get viewProjectionType():String { return _viewProjectionType; }
+		public function set viewProjectionType(t:String):void { _viewProjectionType = t; }
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// PLUGINS

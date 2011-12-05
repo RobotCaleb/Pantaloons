@@ -33,14 +33,20 @@ package com.longtailvideo.jwplayer.geometry
 		public var minVFOV:Number = 9999;
 		public var maxVFOV:Number = 9999;
 		
-		public function ViewProjection()
+		private var _projectionType: String = Projection.RECTILINEAR;
+		
+		public function ViewProjection(projectionType:String=null)
 		{
 			_orientation = new Orientation();
 			_orientation.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, orientationChanged);
 			_aspectRatio = 1.0;
 			_inConstrainView = false;
 			this.verticalFOV = 120;
+			if(projectionType){
+				_projectionType = projectionType;
+			}
 		}
+		
 		
 		public function setView(settings:Object):void
 		{
@@ -80,7 +86,7 @@ package com.longtailvideo.jwplayer.geometry
 		
 		public function get type():String
 		{
-			return Projection.RECTILINEAR;
+			return _projectionType;
 		}
 		
 		public function get orientation():Orientation

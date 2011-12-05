@@ -12,7 +12,8 @@ package com.longtailvideo.jwplayer.events
 	{
 	
 		public static var SOURCE_PROJECTION_SWITCH:String = "sourceProjectionSwitch";
-		public static var VIEW_PROJECTION_SHIFT:String = "viewProjectionSwitch";
+		public static var VIEW_PROJECTION_SHIFT:String = "viewProjectionShift";
+		public static var VIEW_PROJECTION_SWITCH:String = "viewProjectionSwitch";
 		public static var VIEW_INPUT_HANDLER:String = "viewInputHandler";
 		
 		public var data:Object;		

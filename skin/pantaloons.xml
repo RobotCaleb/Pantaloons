@@ -47,6 +47,12 @@
 				<element name="volumeSliderRail" src="volumeSliderRail.png" />
 				<element name="volumeSliderBuffer" src="volumeSliderBuffer.png" />
 				<element name="volumeSliderProgress" src="volumeSliderProgress.png" />
+				
+				<element name="equirectangularViewButton" src="equirectangularViewButton.png" />
+				<element name="equirectangularViewButtonOver" src="equirectangularViewButtonOver.png" />
+				
+				<element name="rectlinearViewButton" src="rectlinearViewButton.png" />
+				<element name="rectlinearViewButtonOver" src="rectlinearViewButtonOver.png" />
 			</elements>
 			<layout>
 			   <group position="left">
@@ -67,6 +73,7 @@
 			      <slider name="volume" />
 
 			 <button name="fullscreen" />
+			 <button name="projectionView" />
 		
 			   </group>
 			</layout>

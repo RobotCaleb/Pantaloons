@@ -3,6 +3,7 @@ package com.longtailvideo.jwplayer.media {
 	import com.longtailvideo.jwplayer.events.IGlobalEventDispatcher;
 	import com.longtailvideo.jwplayer.events.MediaEvent;
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
+	import com.longtailvideo.jwplayer.events.ProjectionEvent;
 	import com.longtailvideo.jwplayer.model.PlayerConfig;
 	import com.longtailvideo.jwplayer.model.PlaylistItem;
 	import com.longtailvideo.jwplayer.player.PlayerState;
@@ -262,7 +263,13 @@ package com.longtailvideo.jwplayer.media {
 				dispatchEvent(evt);
 			}
 		}
-
+		/**
+		 * Change projection type and sends a Projection Switch Event
+		 * 
+		 **/
+		public function switchDestProjection():void{
+			dispatchEvent(new ProjectionEvent(ProjectionEvent.VIEW_PROJECTION_SWITCH));
+		}
 
 		/**
 		 * Sends a MediaEvent, simultaneously setting a property

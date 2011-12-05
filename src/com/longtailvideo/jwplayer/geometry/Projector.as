@@ -18,6 +18,7 @@ package com.longtailvideo.jwplayer.geometry
 	import flash.geom.Rectangle;
 	import flash.media.Video;
 	import flash.utils.getTimer;
+	import flash.geom.Point;
 
 	public class Projector extends EventDispatcher
 	{
@@ -78,6 +79,8 @@ package com.longtailvideo.jwplayer.geometry
 		[Embed(source="EquiangularToRectilinearKernel.pbj", mimeType="application/octet-stream")]
 		private var EquiangularToRectilinearKernel:Class;
 		
+		[Embed(source="EquirectangularToEquirectangularKernel.pbj", mimeType="application/octet-stream")]
+		private var EquirectangularToEquirectangularKernel:Class;
 		
 		public function Projector(media:DisplayObject, sourceprojection:Projection, destprojection:ViewProjection, width:Number, height:Number)
 		{
@@ -107,6 +110,16 @@ package com.longtailvideo.jwplayer.geometry
 				_shaderJob.cancel();
 			} 
 			initializeData();
+		}
+		
+		public function switchDestProjection(projection:ViewProjection):void{
+			_destProjection = projection;
+			_destProjection.setConstraintsFromProjection(_sourceProjection);
+			if (_shaderJob) {
+				_shaderJob.cancel();
+			} 
+			initializeData();
+			
 		}
 		
 		public function viewShift(data:Object):void
@@ -259,29 +272,29 @@ package com.longtailvideo.jwplayer.geometry
 		{
 			var mw:Number;
 			var mh:Number;
+			
 			if (_width > _maxShaderWidth)
 			{
 				_shaderWidth = _maxShaderWidth;
 				_shaderHeight = int(((_maxShaderWidth/_width) * _height));
-				mw = _shaderWidth % 4;
-				mh = _shaderHeight % 4;
-				_shaderWidth += (mw) ? 4-mw : 0; 
-				_shaderHeight += (mh) ? 4-mh : 0;
-				
-			} else {
+			}
+			else {
 				_shaderWidth = _width;
 				_shaderHeight = _height;
-				mw = _width % 4;
-				mh = _height % 4;
-				_shaderWidth += (mw) ? 4-mw : 0; 
-				_shaderHeight += (mh) ? 4-mh : 0;
 			}
-									
+			if (_destProjection.type == Projection.EQUIRECTANGULAR){
+				_shaderHeight = (1 / Math.PI) * _shaderWidth;
+			}
+			mw = _shaderWidth % 4;
+			mh = _shaderHeight % 4;
+			_shaderWidth += (mw) ? 4-mw : 0; 
+			_shaderHeight += (mh) ? 4-mh : 0;		
+			
 			_projectedBitmap = new BitmapData(_shaderWidth, _shaderHeight, false, 0);
+			
 			if (_projectedMedia){
 				_projectedMedia.bitmapData = _projectedBitmap;
 				_projectedMedia.smoothing = true
-				
 				
 			} else {
 				_projectedMedia = new Bitmap(_projectedBitmap, "auto", true);
@@ -295,7 +308,6 @@ package com.longtailvideo.jwplayer.geometry
 				_needsSizeSync = true;
 				_needsRedraw = true;
 			}
-			
 		}
 		
 		/* syncs changes to orientation, rotation, and viewBounds */
@@ -336,39 +348,77 @@ package com.longtailvideo.jwplayer.geometry
 			
 			var fromType:String = _sourceProjection.type;
 			var toType:String = _destProjection.type;
-			/* for right now, this is the only type of projection we will use
-			as the destination type */
-			if (toType == Projection.RECTILINEAR) {
-				
-				switch (fromType) {
-					case Projection.EQUIRECTANGULAR:
-						this.initShaderEquirectangularToRectilinear();
-						break;
-					case Projection.CYLINDRICAL:
-						this.initShaderCylindricalToRectilinear();
-						break;
-					case Projection.EQUIANGULAR:
-						this.initShaderEquiangularToRectilinear();
-						break;
-					case Projection.PLANAR:
-						return;
-						break;
-					default:
-						throw("Cannot unwarp from " + fromType + " to " + toType);
-				} 
-				
-				/* special data for rectilinear */
-				syncView();
-				
 
-				_shader.precisionHint = ShaderPrecision.FULL;
-				_shader.data.outputDimensions.value = [1.0/_shaderWidth, 1.0/_shaderHeight];
+			switch (toType){
+				case Projection.RECTILINEAR:
+					initShaderHandlerToRectlinear(fromType, toType);	
+					break;
+				case Projection.EQUIRECTANGULAR:
+					initShaderHandlerToEquirectangular(fromType, toType);
+					break;
+					
+			 	default: throw("Cannot unwarp to " + toType);
 				
-			} else {
-				throw("Cannot unwarp to " + toType);
 			}
 		}
 		
+		private function initShaderHandlerToRectlinear(fromType: String, toType: String): void{
+			switch (fromType) {
+				case Projection.EQUIRECTANGULAR:
+					this.initShaderEquirectangularToRectilinear();
+					break;
+				case Projection.CYLINDRICAL:
+					this.initShaderCylindricalToRectilinear();
+					break;
+				case Projection.EQUIANGULAR:
+					this.initShaderEquiangularToRectilinear();
+					break;
+				case Projection.PLANAR:
+					return;
+					break;
+				default:
+					throw("Cannot unwarp from " + fromType + " to " + toType);
+					
+			}
+			/* special data for rectilinear */
+			syncView();
+			
+			
+			_shader.precisionHint = ShaderPrecision.FULL;
+			_shader.data.outputDimensions.value = [1.0/_shaderWidth, 1.0/_shaderHeight];
+		}
+		
+		private function initShaderHandlerToEquirectangular(fromType: String, toType: String):void{
+			switch (fromType) {
+				case Projection.EQUIRECTANGULAR:
+					this.initShaderEquirectangularToEquirectangular();
+					break;
+				case Projection.CYLINDRICAL:
+					break;
+				case Projection.EQUIANGULAR:
+					break;
+				case Projection.PLANAR:
+					return;
+					break;
+				default:
+					throw("Cannot unwarp from " + fromType + " to " + toType);
+					
+			}
+			
+			_shader.precisionHint = ShaderPrecision.FULL;
+			_shader.data.outputDimensions.value = [1.0/_shaderWidth, 1.0/_shaderHeight];
+		}
+		
+		private function initShaderEquirectangularToEquirectangular():void{
+			_shader = new Shader( new EquirectangularToEquirectangularKernel() );
+			var input:BitmapData = _sourceBitmap;
+			var bounds:Array = _sourceProjection.bounds;
+			var newBounds:Array = [bounds[0], -1*(bounds[3]+bounds[1]), 1.0/bounds[2], 1.0/bounds[3]];
+			_shader.data.src.input = input;
+			_shader.data.inputDimensions.value = [input.width,input.height];
+			_shader.data.equirectangularBoundsRad.value = newBounds;
+		}
+		  	
 		private function initShaderEquirectangularToRectilinear():void
 		{
 			_shader = new Shader( new EquirectangularToRectilinearKernel() );
@@ -463,11 +513,16 @@ package com.longtailvideo.jwplayer.geometry
 				scaleY = 1.0;
 				_drawable = mediaBitmap.bitmapData;
 			}
-			/* we have to transform and scale approrpiately */	
-			_clipRect = _sourceProjection.getROIRect(w, h);
+
 			_transformMatrix = new Matrix();
 			_transformMatrix.scale(scaleX, scaleY);
-			_transformMatrix.translate(-_clipRect.left, -_clipRect.top);
+			
+			/* we have to transform and scale approrpiately 
+			   I commented this two lines out because it doesn't seem to do anything. -- Yan 
+			*/	
+//			_clipRect = _sourceProjection.getROIRect(w, h);
+//			_transformMatrix.translate(-_clipRect.left, -_clipRect.top);
+			
 			/*if (w == 0 || h == 0){
 				w = 320;
 				h = 240;

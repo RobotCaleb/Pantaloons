@@ -3,7 +3,9 @@ package com.longtailvideo.jwplayer.view.components {
 	import com.longtailvideo.jwplayer.events.PlayerEvent;
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
 	import com.longtailvideo.jwplayer.events.PlaylistEvent;
+	import com.longtailvideo.jwplayer.events.ProjectionEvent;
 	import com.longtailvideo.jwplayer.events.ViewEvent;
+	import com.longtailvideo.jwplayer.geometry.Projection;
 	import com.longtailvideo.jwplayer.player.IPlayer;
 	import com.longtailvideo.jwplayer.player.PlayerState;
 	import com.longtailvideo.jwplayer.plugins.PluginConfig;
@@ -11,7 +13,6 @@ package com.longtailvideo.jwplayer.view.components {
 	import com.longtailvideo.jwplayer.utils.Draw;
 	import com.longtailvideo.jwplayer.utils.Strings;
 	import com.longtailvideo.jwplayer.view.interfaces.IControlbarComponent;
-	
 	
 	import flash.display.DisplayObject;
 	import flash.display.MovieClip;
@@ -87,13 +88,20 @@ package com.longtailvideo.jwplayer.view.components {
 	 * @eventType com.longtailvideo.jwplayer.events.ViewEvent.JWPLAYER_VIEW_SEEK
 	 */
 	[Event(name="jwPlayerViewSeek", type="com.longtailvideo.jwplayer.events.ViewEvent")]
+	/**
+	 *
+	 *
+	 * @eventType com.longtailvideo.jwplayer.events.ViewEvent.JWPLAYER_VIEW_CYLINDRICAL_VIEW
+	 */
+	[Event(name="jwPlayerViewProjection", type="com.longtailvideo.jwplayer.events.ViewEvent")]
+	
 	public class ControlbarComponent extends CoreComponent implements IControlbarComponent {
 		
 		include '../fonts/Futura.as';
 		
 		protected var _buttons:Object = {};
 		protected var _dividers:Array;
-		protected var _defaultLayout:String = "[play|stop|prev|next|elapsed][time][duration|blank|fullscreen|mute volume]";
+		protected var _defaultLayout:String = "[play|stop|prev|next|elapsed][time][duration|blank|equirectangularView|fullscreen|mute volume]";
 		protected var _currentLayout:String;
 		protected var _layoutManager:ControlbarLayoutManager;
 		protected var _width:Number;
@@ -130,6 +138,7 @@ package com.longtailvideo.jwplayer.view.components {
 			player.addEventListener(MediaEvent.JWPLAYER_MEDIA_TIME, mediaHandler);
 			player.addEventListener(PlayerEvent.JWPLAYER_LOCKED, lockHandler);
 			player.addEventListener(PlayerEvent.JWPLAYER_UNLOCKED, lockHandler);
+			player.addEventListener(ProjectionEvent.VIEW_PROJECTION_SWITCH, projectionHandler);
 		}
 
 
@@ -204,7 +213,11 @@ package com.longtailvideo.jwplayer.view.components {
 			redraw();
 		}
 
-
+		private function projectionHandler(evt:ProjectionEvent):void{
+			updateControlbarState();
+			redraw();
+		}
+		
 		private function updateControlbarState():void {
 			var newLayout:String = _defaultLayout;
 			newLayout = removeButtonFromLayout("blank", newLayout);
@@ -237,6 +250,18 @@ package com.longtailvideo.jwplayer.view.components {
 			} else {
 				hideButton("normalscreen");
 			}
+			switch  (player.viewProjectionType){
+				case Projection.EQUIRECTANGULAR: 
+						newLayout = newLayout.replace("equirectangularView", "rectlinearView");
+						hideButton('equirectangularView');
+						break;
+			    case Projection.RECTILINEAR: 
+						hideButton('rectlinearView');
+						break;
+				default: 
+					break;
+			}
+	
 			_currentLayout = removeInactive(newLayout);
 		}
 
@@ -247,6 +272,7 @@ package com.longtailvideo.jwplayer.view.components {
 				var button:String = (buttons[i] as String).replace(/\W/g, "");
 				if (!_buttons[button]) {
 					layout = removeButtonFromLayout(button, layout);
+					
 				}
 			}
 			return layout;
@@ -308,10 +334,10 @@ package com.longtailvideo.jwplayer.view.components {
 			if (duration < 0) {
 				duration = 0;
 			}
-			var elapsedText:TextField = getButton('elapsed') as TextField;
-			elapsedText.text = Strings.digits(position);
+			/*var elapsedText:TextField = getButton('elapsed') as TextField;
+			elapsedText.text = Strings.digits(position);*/
 			var durationField:TextField = getButton('duration') as TextField;
-			durationField.text = Strings.digits(duration);
+			durationField.text = Strings.digits(position) + '/' + Strings.digits(duration);
 			redraw();
 		}
 
@@ -363,7 +389,9 @@ package com.longtailvideo.jwplayer.view.components {
 			addComponentButton('normalscreen', ViewEvent.JWPLAYER_VIEW_FULLSCREEN, false);
 			addComponentButton('unmute', ViewEvent.JWPLAYER_VIEW_MUTE, false);
 			addComponentButton('mute', ViewEvent.JWPLAYER_VIEW_MUTE, true);
-			addTextField('elapsed');
+			addComponentButton('equirectangularView', ViewEvent.JWPLAYER_VIEW_PROJECTION, Projection.EQUIRECTANGULAR);
+			addComponentButton('rectlinearView', ViewEvent.JWPLAYER_VIEW_PROJECTION, Projection.RECTILINEAR);
+//			addTextField('elapsed');
 			addTextField('duration');
 			addSlider('time', Slider.HORIZONTAL, ViewEvent.JWPLAYER_VIEW_CLICK, seekHandler);
 			addSlider('volume', Slider.HORIZONTAL, ViewEvent.JWPLAYER_VIEW_CLICK, volumeHandler);

@@ -1,5 +1,7 @@
 package com.longtailvideo.jwplayer.events {
 	import flash.events.Event;
+	
+	import org.osmf.net.StreamingURLResource;
 
 	public class ViewEvent extends PlayerEvent {
 		
@@ -119,6 +121,14 @@ package com.longtailvideo.jwplayer.events {
 		 * @eventType jwplayerViewClick
 		 */
 		public static var JWPLAYER_VIEW_CLICK:String = "jwplayerDisplayClick";		
+		
+		/**
+		 * 
+		 * 
+		 * @eventType jwPlayerViewProjection
+		 */
+		
+		public static var JWPLAYER_VIEW_PROJECTION: String = "jwplayerViewProjection";
 
 		/** Sent along with REQUEST Event types. **/
 		public var data:*;

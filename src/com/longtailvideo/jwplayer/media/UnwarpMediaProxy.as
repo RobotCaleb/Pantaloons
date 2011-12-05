@@ -38,6 +38,9 @@ package com.longtailvideo.jwplayer.media
 		later send it once we get the metadata */
 		private var _needsBufferFull:Boolean;
 		
+//		private var _viewProjectionType:String;
+		private var _config:PlayerConfig;
+		
 		private static const  _projectionFlashVars:Array = ["panmin", "panmax", "panrange", "tiltmin", "tiltmax", "tiltrange", "roi", "projectiontype"];
 		private static const _viewProjectionFlashVars:Array = ["pan", "tilt", "verticalfov", "horizontalfov", "diagonalfov"];
 		
@@ -57,8 +60,8 @@ package com.longtailvideo.jwplayer.media
 		public override function initializeMediaProvider(cfg:PlayerConfig):void {
 			super.initializeMediaProvider(cfg);
 			_subProvider.initializeMediaProvider(cfg);	
+			_config = cfg;
 		}
-		
 		
 		public override function load(itm:PlaylistItem):void 
 		{
@@ -83,6 +86,14 @@ package com.longtailvideo.jwplayer.media
 
 		}
 		
+		public override function switchDestProjection():void{
+			var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
+			_projector.switchDestProjection(viewProjection);
+			this.resize(_width, _height);
+			super.switchDestProjection();
+			
+		}
+
 		protected function parseFlashVars(itm:PlaylistItem):void
 		{
 			/*check for the itm's extension */
@@ -147,7 +158,6 @@ package com.longtailvideo.jwplayer.media
 						this.stop();
 						break;
 					} 
-					
 				default:
 					this.dispatchEvent(e);
 					break;
@@ -198,7 +208,7 @@ package com.longtailvideo.jwplayer.media
 				mediaRefresh();
 
 			}
-
+			
 		}
 
 		protected function mediaRefresh():void
@@ -229,7 +239,7 @@ package com.longtailvideo.jwplayer.media
 		
 		protected function initProjector(projection:Projection):void
 		{
-			var viewProjection:ViewProjection = new ViewProjection();
+			var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
 			if (_externalViewProjection) {
 				
 				viewProjection.setView(_externalViewProjection);

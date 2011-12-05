@@ -317,5 +317,13 @@
 			return null;
 		}
 		
+		
+		public function get viewProjectionType():String{
+			return model.viewProjectionType;
+		}
+		public function set viewProjectionType(type:String):void{
+			model.viewProjectionType = type;
+		}
+
 	}
 }
