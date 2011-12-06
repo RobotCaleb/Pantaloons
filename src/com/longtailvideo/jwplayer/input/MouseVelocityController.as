@@ -9,7 +9,6 @@ package com.longtailvideo.jwplayer.input
 	import flash.display.BitmapData;
 	import flash.display.DisplayObject;
 	import flash.display.Stage;
-	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	import flash.ui.Mouse;
@@ -109,8 +108,8 @@ package com.longtailvideo.jwplayer.input
 			
 			_viewScale = new Point(_projector.horizontalFOV, 
 				_projector.verticalFOV);
+			_stage.addEventListener(MouseEvent.MOUSE_OUT, mouseUp);
 			_stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
-			_stage.addEventListener(Event.MOUSE_LEAVE, mouseLeave); // Stop the rotation when mouse is out of the movie clip
 			
 			/*
 			//	Custom cursor
@@ -163,16 +162,6 @@ package com.longtailvideo.jwplayer.input
 			_projector.panVelocity = 0;
 			_downPoint = null;
 			_stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
-			_stage.removeEventListener(Event.MOUSE_LEAVE, mouseLeave);
-		}
-		
-		private function mouseLeave(e:Event):void
-		{
-			_projector.tiltVelocity = 0;
-			_projector.panVelocity = 0;
-			_downPoint = null;	
-			_media.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
-			
 		}
 		
 		private function mouseDrag(e:MouseEvent):void
