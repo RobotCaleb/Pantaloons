@@ -9,11 +9,12 @@ kernel EquirectangularToEquirectangular
     displayname : "Equirectangular to Equirectangular";
 >
 {
+    #define PI 3.14159265
     input image4 src;
     output pixel4 dst;
     
     // define PI for the degrees to radians calculation
-    const float PI = 3.14159265;
+   // const float PI = 3.14159265;
     
     parameter float2 inputDimensions
     <
@@ -44,22 +45,25 @@ kernel EquirectangularToEquirectangular
 
 	parameter float rotationMatrix
 	<
-		description : "rotation angle in radians for viewing";
-		defaultValue : 0.0;
+		description : "rotation matrix for viewing";
+		defaultValue : 0.0;	// identity
 	>;
 
     void evaluatePixel()
     {
         // Normalized output coordinate (between 0 and 1)
 		float2 outputPoint = outCoord() * outputDimensions;
-        float2 planePoint = outputPoint * viewBounds.zw + viewBounds.xy;
+        float2 planePoint = outputPoint * viewBounds.zw + viewBounds.xy ;
+        float4 noused = equirectangularBoundsRad;
         
         // Rotate the image
         float2 inputPoint = outputPoint;
-        inputPoint.x += rotationMatrix /  equirectangularBoundsRad.z;
+        
+        inputPoint.x += rotationMatrix;
+        
         inputPoint.x = mod(inputPoint.x, 1.0);  // wraparound
         
-        // Denormalize coordinate
+        // Denormalize coordinate   
         inputPoint *= inputDimensions;
 
 		// Sample the pixel

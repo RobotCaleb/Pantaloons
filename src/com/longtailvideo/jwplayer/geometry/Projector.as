@@ -15,10 +15,10 @@ package com.longtailvideo.jwplayer.geometry
 	import flash.events.EventDispatcher;
 	import flash.events.ShaderEvent;
 	import flash.geom.Matrix;
+	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.media.Video;
 	import flash.utils.getTimer;
-	import flash.geom.Point;
 
 	public class Projector extends EventDispatcher
 	{
@@ -150,27 +150,44 @@ package com.longtailvideo.jwplayer.geometry
 			} else {
 				_destProjection.removeEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, viewShift);
 				var currentTime:Number = getTimer();
-				if (_panVelocity != 0) {
-					_destProjection.pan += _panVelocity*(currentTime - _lastFrameTime);
+				if (_panVelocity != 0) { 
+					switch (_destProjection.type){
+						case Projection.RECTILINEAR:
+							_destProjection.pan  += _panVelocity * (currentTime - _lastFrameTime);
+							break;
+						case Projection.EQUIRECTANGULAR:
+							_destProjection.pan  += _panVelocity * (currentTime - _lastFrameTime) / 100;
+							break;
+						default: break;
+					}
 				}
 				if (_tiltVelocity != 0) {
-					_destProjection.tilt += _tiltVelocity*(currentTime - _lastFrameTime);
+					_destProjection.tilt += _tiltVelocity * (currentTime - _lastFrameTime);
 				}
 				if (_zoomVelocity != 0) {
-					_destProjection.verticalFOV += _zoomVelocity*(currentTime - _lastFrameTime);
+					_destProjection.verticalFOV += _zoomVelocity * (currentTime - _lastFrameTime);
 				}
 				_lastFrameTime = currentTime;
 				
-				if (_panVelocity != 0 || _tiltVelocity != 0 || zoomVelocity != 0) {
+				if (_panVelocity != 0 || _tiltVelocity != 0 || _zoomVelocity != 0) {
 					var rectProjection:ViewProjection = _destProjection as ViewProjection;
-					var orientation:Vector.<Number> = rectProjection.orientation.rawData;
 					_shader.data.viewBounds.value = rectProjection.bounds;
-					_shader.data.rotationMatrix.value = 
-						[
-							rectProjection.orientation.rawData[0], rectProjection.orientation.rawData[1], rectProjection.orientation.rawData[2],
-							rectProjection.orientation.rawData[4], rectProjection.orientation.rawData[5], rectProjection.orientation.rawData[6],
-							rectProjection.orientation.rawData[8], rectProjection.orientation.rawData[9], rectProjection.orientation.rawData[10]
-						];
+					switch (_destProjection.type){
+						case Projection.RECTILINEAR:
+							_shader.data.rotationMatrix.value =
+									[
+										rectProjection.orientation.rawData[0], rectProjection.orientation.rawData[1], rectProjection.orientation.rawData[2],
+										rectProjection.orientation.rawData[4], rectProjection.orientation.rawData[5], rectProjection.orientation.rawData[6],
+										rectProjection.orientation.rawData[8], rectProjection.orientation.rawData[9], rectProjection.orientation.rawData[10]
+									];
+							break;
+						case Projection.EQUIRECTANGULAR:
+							_shader.data.rotationMatrix.value = [rectProjection.orientation.pan];
+							break;
+						
+						default: break;
+					}
+					 
 				}						
 				_destProjection.addEventListener(ProjectionEvent.VIEW_PROJECTION_SHIFT, viewShift);
 			}	
@@ -289,6 +306,7 @@ package com.longtailvideo.jwplayer.geometry
 			mh = _shaderHeight % 4;
 			_shaderWidth += (mw) ? 4-mw : 0; 
 			_shaderHeight += (mh) ? 4-mh : 0;		
+			
 			
 			_projectedBitmap = new BitmapData(_shaderWidth, _shaderHeight, false, 0);
 			
@@ -413,10 +431,9 @@ package com.longtailvideo.jwplayer.geometry
 			_shader = new Shader( new EquirectangularToEquirectangularKernel() );
 			var input:BitmapData = _sourceBitmap;
 			var bounds:Array = _sourceProjection.bounds;
-			var newBounds:Array = [bounds[0], -1*(bounds[3]+bounds[1]), 1.0/bounds[2], 1.0/bounds[3]];
 			_shader.data.src.input = input;
 			_shader.data.inputDimensions.value = [input.width,input.height];
-			_shader.data.equirectangularBoundsRad.value = newBounds;
+			_shader.data.equirectangularBoundsRad.value = bounds;
 		}
 		  	
 		private function initShaderEquirectangularToRectilinear():void

@@ -103,9 +103,8 @@ package com.longtailvideo.jwplayer.input
 			_downPoint = new Point(e.localX, e.localY);
 			_projector.tiltVelocity = 0.0;
 			_projector.panVelocity = 0.0;
-			
 			_stage.addEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
-			
+
 			_viewScale = new Point(_projector.horizontalFOV, 
 				_projector.verticalFOV);
 			_stage.addEventListener(MouseEvent.MOUSE_OUT, mouseUp);
@@ -162,17 +161,20 @@ package com.longtailvideo.jwplayer.input
 			_projector.panVelocity = 0;
 			_downPoint = null;
 			_stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseDrag);
+			_stage.removeEventListener(MouseEvent.MOUSE_OUT, mouseUp);
 		}
 		
 		private function mouseDrag(e:MouseEvent):void
 		{
 			if (e.localX <= 1.0 && e.localY <= 1.0) {
 				var currentPos:Point = new Point(e.localX, e.localY);
-				var deltaPos:Point = _downPoint.subtract(currentPos);
+				if (_downPoint != null){
+					var deltaPos:Point = _downPoint.subtract(currentPos);
 				
-				_viewScale = new Point(_projector.horizontalFOV, _projector.verticalFOV);
-				_projector.panVelocity = (deltaPos.x * _panScale.x * _viewScale.x)
-				_projector.tiltVelocity = (deltaPos.y * _panScale.y * _viewScale.y)
+					_viewScale = new Point(_projector.horizontalFOV, _projector.verticalFOV);
+					_projector.panVelocity = (deltaPos.x * _panScale.x * _viewScale.x);
+					_projector.tiltVelocity = (deltaPos.y * _panScale.y * _viewScale.y);
+				}
 			}
 			
 			
