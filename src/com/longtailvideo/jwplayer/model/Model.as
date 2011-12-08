@@ -147,7 +147,6 @@ package com.longtailvideo.jwplayer.model {
 		
 		public function set viewProjectionType(t:String):void{
 			_config.viewProjectionType = t;
-//			forwardEvents(new ProjectionEvent(ProjectionEvent.VIEW_PROJECTION_SWITCH));
 			_currentMedia.switchDestProjection();
 		}
 

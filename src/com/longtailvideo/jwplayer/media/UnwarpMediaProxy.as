@@ -87,10 +87,12 @@ package com.longtailvideo.jwplayer.media
 		}
 		
 		public override function switchDestProjection():void{
-			var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
-			_projector.switchDestProjection(viewProjection);
-			super.resize(_width, _height);
-			super.switchDestProjection();
+			if(_projector){
+				var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
+				_projector.switchDestProjection(viewProjection);
+				super.resize(_width, _height);
+				super.switchDestProjection();
+			}
 			
 		}
 
