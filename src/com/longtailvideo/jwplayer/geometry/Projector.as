@@ -118,8 +118,8 @@ package com.longtailvideo.jwplayer.geometry
 			if (_shaderJob) {
 				_shaderJob.cancel();
 			} 
-			initializeData();
-			
+			resize(_width, _height);
+			initShader();
 		}
 		
 		public function viewShift(data:Object):void
@@ -300,7 +300,7 @@ package com.longtailvideo.jwplayer.geometry
 				_shaderHeight = _height;
 			}
 			if (_destProjection.type == Projection.EQUIRECTANGULAR){
-				_shaderHeight = (1 / Math.PI) * _shaderWidth;
+				_shaderHeight = (_sourceProjection.boundsDeg[3] / _sourceProjection.boundsDeg[2]) * _shaderWidth;
 			}
 			mw = _shaderWidth % 4;
 			mh = _shaderHeight % 4;
@@ -308,7 +308,7 @@ package com.longtailvideo.jwplayer.geometry
 			_shaderHeight += (mh) ? 4-mh : 0;		
 			
 			
-			_projectedBitmap = new BitmapData(_shaderWidth, _shaderHeight, false, 0);
+	  		_projectedBitmap = new BitmapData(_shaderWidth, _shaderHeight, false, 0);
 			
 			if (_projectedMedia){
 				_projectedMedia.bitmapData = _projectedBitmap;
@@ -369,7 +369,7 @@ package com.longtailvideo.jwplayer.geometry
 
 			switch (toType){
 				case Projection.RECTILINEAR:
-					initShaderHandlerToRectlinear(fromType, toType);	
+					initShaderHandlerToRectilinear(fromType, toType);	
 					break;
 				case Projection.EQUIRECTANGULAR:
 					initShaderHandlerToEquirectangular(fromType, toType);
@@ -380,7 +380,7 @@ package com.longtailvideo.jwplayer.geometry
 			}
 		}
 		
-		private function initShaderHandlerToRectlinear(fromType: String, toType: String): void{
+		private function initShaderHandlerToRectilinear(fromType: String, toType: String): void{
 			switch (fromType) {
 				case Projection.EQUIRECTANGULAR:
 					this.initShaderEquirectangularToRectilinear();
@@ -430,10 +430,8 @@ package com.longtailvideo.jwplayer.geometry
 		private function initShaderEquirectangularToEquirectangular():void{
 			_shader = new Shader( new EquirectangularToEquirectangularKernel() );
 			var input:BitmapData = _sourceBitmap;
-			var bounds:Array = _sourceProjection.bounds;
 			_shader.data.src.input = input;
 			_shader.data.inputDimensions.value = [input.width,input.height];
-			_shader.data.equirectangularBoundsRad.value = bounds;
 		}
 		  	
 		private function initShaderEquirectangularToRectilinear():void

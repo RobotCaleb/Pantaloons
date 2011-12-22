@@ -4,6 +4,7 @@ package com.longtailvideo.jwplayer.media
 	import com.longtailvideo.jwplayer.events.PlayerEvent;
 	import com.longtailvideo.jwplayer.events.PlayerStateEvent;
 	import com.longtailvideo.jwplayer.events.ProjectionEvent;
+	import com.longtailvideo.jwplayer.geometry.Orientation;
 	import com.longtailvideo.jwplayer.geometry.Projection;
 	import com.longtailvideo.jwplayer.geometry.Projector;
 	import com.longtailvideo.jwplayer.geometry.ViewProjection;
@@ -38,7 +39,7 @@ package com.longtailvideo.jwplayer.media
 		later send it once we get the metadata */
 		private var _needsBufferFull:Boolean;
 		
-//		private var _viewProjectionType:String;
+		private var _viewProjection: ViewProjection;
 		private var _config:PlayerConfig;
 		
 		private static const  _projectionFlashVars:Array = ["panmin", "panmax", "panrange", "tiltmin", "tiltmax", "tiltrange", "roi", "projectiontype"];
@@ -88,10 +89,11 @@ package com.longtailvideo.jwplayer.media
 		
 		public override function switchDestProjection():void{
 			if(_projector){
-				var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
-				_projector.switchDestProjection(viewProjection);
+				_viewProjection = new ViewProjection(_config.viewProjectionType);
+				_projector.switchDestProjection(_viewProjection);
 				super.resize(_width, _height);
 				super.switchDestProjection();
+
 			}
 			
 		}
@@ -241,10 +243,10 @@ package com.longtailvideo.jwplayer.media
 		
 		protected function initProjector(projection:Projection):void
 		{
-			var viewProjection:ViewProjection = new ViewProjection(_config.viewProjectionType);
+			_viewProjection = new ViewProjection(_config.viewProjectionType);
 			if (_externalViewProjection) {
 				
-				viewProjection.setView(_externalViewProjection);
+				_viewProjection.setView(_externalViewProjection);
 			}
 			
 			
@@ -254,7 +256,7 @@ package com.longtailvideo.jwplayer.media
 				_width = 320;
 				_height = 240;
 			}
-			_projector = new Projector(_subProvider.getRawMedia(), projection, viewProjection, _width, _height);
+			_projector = new Projector(_subProvider.getRawMedia(), projection, _viewProjection, _width, _height);
 			
 		}
 		
