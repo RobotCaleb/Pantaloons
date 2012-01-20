@@ -160,7 +160,7 @@ Most additional configuration can be done by looking at JWPlayer guide: http://w
 
 --- Contact ---
 
-For issues, problems or feedback please use the github: https://github.com/EyeSee360/Pantaloons. Or contact sditmore@eyesee360.com.
+For issues, problems or feedback please use the github: https://github.com/EyeSee360/Pantaloons.
 
 
 --- Licensing ---
