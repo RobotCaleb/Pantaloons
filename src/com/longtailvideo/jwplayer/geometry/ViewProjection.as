@@ -264,6 +264,9 @@ package com.longtailvideo.jwplayer.geometry
 			
 			trace("View Projection Bounds : ");
 			trace("minPan: ", minPan, "maxPan: ", maxPan, "minTilt: ", minTilt, "maxTilt: ", maxTilt); 
+			
+			// preserve center
+			pan = ( proj.boundsDeg[2] - proj.boundsDeg[0] ) / 4;
 		}
 		
 		private function constrainView():void
