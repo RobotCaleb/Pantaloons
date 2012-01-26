@@ -196,9 +196,6 @@
 				clearInterval(_positionInterval);
 				_positionInterval = undefined;
 				_stream.seek(position);
-				if (ply){
-					play();
-				}
 			}
 		}
 
