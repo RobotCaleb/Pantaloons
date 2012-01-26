@@ -186,7 +186,7 @@
 
 		/** Seek to a new position. **/
 		override public function seek(pos:Number):void {
-			seekStream(pos);
+			seekStream(pos, false);
 		}
 		
 		private function seekStream(pos:Number, ply:Boolean=true):void {
@@ -196,6 +196,9 @@
 				clearInterval(_positionInterval);
 				_positionInterval = undefined;
 				_stream.seek(position);
+				if (ply){
+					play();
+				}
 			}
 		}
 
